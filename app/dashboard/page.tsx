@@ -4,6 +4,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './dashboard.css'; // استيراد ملف CSS
 import '../globals.css'
+import SurveyManager from '../components/SurveyManager';
+import MoodCalendar from '../components/MoodCalendar';
 
 // --- تعريفات الأنواع (Interfaces) ---
 interface UserData {
@@ -693,9 +695,21 @@ const App: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* بطاقة تقويم المزاج */}
+                        <div className="card" style={{ gridColumn: '1 / -1' }}>
+                            <div className="card-header">
+                                <div className="card-icon mood-icon">📅</div>
+                                <h2 className="card-title">تقويم المزاج الشهري</h2>
+                            </div>
+                            <MoodCalendar entries={moodHistory} />
+                        </div>
                     </div>
                 </>
             )}
+
+            {/* نظام الاستبيانات */}
+            {username && <SurveyManager username={username} />}
         </>
     );
 };
