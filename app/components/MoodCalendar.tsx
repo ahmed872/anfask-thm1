@@ -35,7 +35,9 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
     // العثور على بداية الأسبوع (السبت = 0 في النظام العربي)
     // تحويل: الأحد = 0 في JS إلى السبت = 0 في النظام العربي
     const dayOfWeek = firstDay.getDay(); // 0 = أحد، 1 = اثنين، ..., 6 = سبت
-    const daysFromSaturday = dayOfWeek === 0 ? 1 : dayOfWeek + 1; // كم يوم من السبت
+    // في JS: أحد=0، اثنين=1، ثلاثاء=2، أربعاء=3، خميس=4، جمعة=5، سبت=6
+    // نريد: سبت=0، أحد=1، اثنين=2، ثلاثاء=3، أربعاء=4، خميس=5، جمعة=6
+    const daysFromSaturday = (dayOfWeek + 1) % 7; // تحويل ليبدأ من السبت
     startDate.setDate(firstDay.getDate() - daysFromSaturday);
     
     const days = [];

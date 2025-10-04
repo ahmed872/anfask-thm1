@@ -83,6 +83,15 @@ const AchievementsPage: React.FC = () => {
         if (!username) return;
         // جلب بيانات المستخدم من localStorage (نفس منطق الداشبورد)
         if (typeof window !== 'undefined') {
+            // محاولة جلب الأيام الفعلية أولاً
+            const actualDaysStr = localStorage.getItem('anfask-actualDaysWithoutSmoking');
+            if (actualDaysStr) {
+                const actualDays = parseInt(actualDaysStr);
+                setDaysSinceQuit(actualDays);
+                return;
+            }
+            
+            // إذا لم تكن متوفرة، استخدم البيانات التقليدية
             const userDataStr = localStorage.getItem('anfask-userData-' + username);
             if (userDataStr) {
                 const data = JSON.parse(userDataStr);

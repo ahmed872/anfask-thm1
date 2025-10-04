@@ -8,7 +8,6 @@ import SurveyManager from '../components/SurveyManager';
 import MoodCalendar from '../components/MoodCalendar';
 import DailyTracking from '../components/DailyTracking';
 import DailyQuestion from '../components/DailyQuestion';
-import DailyMoodTracker from '../components/DailyMoodTracker';
 
 // --- تعريفات الأنواع (Interfaces) ---
 interface UserData {
@@ -181,6 +180,47 @@ const App: React.FC = () => {
     const [cigarettePrice, setCigarettePrice] = useState<number>(1); // قيمة افتراضية
     const [showDailyQuestion, setShowDailyQuestion] = useState(false);
     const [isUpdatingFirebase, setIsUpdatingFirebase] = useState(false);
+    const [actualDaysWithoutSmoking, setActualDaysWithoutSmoking] = useState<number | null>(null);
+
+    // حساب الأيام الفعلية بدون تدخين من السجل اليومي
+    const calculateActualDaysWithoutSmoking = useCallback(async (username: string, userData: UserData) => {
+        if (!username || !userData) return userData.daysWithoutSmoking || 0;
+        
+        try {
+            // جلب السجل اليومي
+            const userDocRef = doc(db, 'users', username);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+                const userDataWithRecords = userDoc.data();
+                const dailyRecords = userDataWithRecords.dailyRecords || {};
+                
+                // حساب الأيام التي لم يتم التدخين فيها
+                let actualDaysWithoutSmoking = 0;
+                const startDate = new Date(userData.createdAt);
+                const today = new Date();
+                
+                const currentDate = new Date(startDate);
+                while (currentDate <= today) {
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    const record = dailyRecords[dateStr];
+                    
+                    if (record && !record.smoked) {
+                        actualDaysWithoutSmoking++;
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                return actualDaysWithoutSmoking;
+            }
+            
+            return userData.daysWithoutSmoking || 0;
+        } catch (error) {
+            console.error('Error calculating actual days without smoking:', error);
+            return userData.daysWithoutSmoking || 0;
+        }
+    }, []);
 
     useEffect(() => {
         // جلب اسم المستخدم من localStorage إذا كان موجودًا
@@ -225,6 +265,23 @@ const App: React.FC = () => {
         };
         fetchUser();
     }, [username]);
+
+    // حساب الأيام الفعلية بدون تدخين من السجل اليومي
+    useEffect(() => {
+        if (!username || !userData) return;
+        
+        const calculateAndSetActualDays = async () => {
+            const actualDays = await calculateActualDaysWithoutSmoking(username, userData);
+            setActualDaysWithoutSmoking(actualDays);
+            
+            // حفظ الأيام الفعلية في localStorage لاستخدامها في صفحات أخرى
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('anfask-actualDaysWithoutSmoking', actualDays.toString());
+            }
+        };
+        
+        calculateAndSetActualDays();
+    }, [username, userData, calculateActualDaysWithoutSmoking]);
 
     // التحقق من ضرورة عرض السؤال اليومي
     const checkDailyQuestion = (data: UserData) => {
@@ -290,6 +347,16 @@ const App: React.FC = () => {
                 showNotification(`ممتاز! لقد أكملت ${newDays} يوم بدون تدخين!`, 'success');
                 createConfetti();
             }
+            
+            // إعادة حساب الأيام الفعلية بعد الإجابة
+            const actualDays = await calculateActualDaysWithoutSmoking(username, userData);
+            setActualDaysWithoutSmoking(actualDays);
+            
+            // حفظ الأيام الفعلية في localStorage
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('anfask-actualDaysWithoutSmoking', actualDays.toString());
+            }
+            
         } catch {
             showNotification('حدث خطأ أثناء تحديث البيانات', 'error');
         }
@@ -356,7 +423,12 @@ const App: React.FC = () => {
         const now = new Date();
         const quitDate = new Date(userData.createdAt);
         const daysSinceQuit = Math.max(0, Math.floor((now.getTime() - quitDate.getTime()) / (1000 * 60 * 60 * 24)));
-        const effectiveDays = userData.daysWithoutSmoking !== undefined ? userData.daysWithoutSmoking : daysSinceQuit;
+        
+        // استخدام الأيام الفعلية من السجل اليومي إذا كانت متوفرة، وإلا استخدام daysWithoutSmoking، وأخيراً daysSinceQuit
+        const effectiveDays = actualDaysWithoutSmoking !== null 
+            ? actualDaysWithoutSmoking 
+            : (userData.daysWithoutSmoking !== undefined ? userData.daysWithoutSmoking : daysSinceQuit);
+            
         const dailyCost = userData.dailyCigarettes * cigarettePrice;
         return {
             totalSavings: effectiveDays * dailyCost,
@@ -366,7 +438,7 @@ const App: React.FC = () => {
             cigarettesAvoided: effectiveDays * userData.dailyCigarettes,
             daysWithoutSmoking: effectiveDays
         };
-    }, [userData, cigarettePrice]);
+    }, [userData, cigarettePrice, actualDaysWithoutSmoking]);
 
     // تحديث القيم في DOM عند تغير المدخرات
     useEffect(() => {
@@ -644,11 +716,6 @@ const App: React.FC = () => {
                                     {isSaving ? <div className="loading"></div> : 'حفظ'}
                                 </button>
                             </div>
-                        </div>
-
-                        {/* بطاقة تتبع المزاج اليومي الجديد */}
-                        <div className="card" style={{ gridColumn: '1 / -1' }}>
-                            <DailyMoodTracker />
                         </div>
 
                         {/* بطاقة تقويم المزاج */}

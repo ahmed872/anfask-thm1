@@ -25,6 +25,7 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
   const [showMissingDaysAlert, setShowMissingDaysAlert] = useState(false);
+  const [showMissingDaysPopup, setShowMissingDaysPopup] = useState(false);
 
   useEffect(() => {
     loadDailyRecords();
@@ -70,12 +71,10 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
 
     setMissingDays(missing);
     
-    // إظهار تنبيه إذا كان هناك أيام مفقودة كثيرة (أكثر من 7 أيام)
+    // إظهار نافذة منبثقة إذا كان هناك أيام مفقودة كثيرة (أكثر من 7 أيام) وللمرة الأولى فقط
     if (missing.length > 7 && !showMissingDaysAlert) {
       setShowMissingDaysAlert(true);
-      setTimeout(() => {
-        setShowMissingDaysForm(true);
-      }, 1000);
+      setShowMissingDaysPopup(true);
     }
   };
 
@@ -167,7 +166,9 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
     // العثور على بداية الأسبوع (السبت = 0 في النظام العربي)
     // تحويل: الأحد = 0 في JS إلى السبت = 0 في النظام العربي
     const dayOfWeek = firstDay.getDay(); // 0 = أحد، 1 = اثنين، ..., 6 = سبت
-    const daysFromSaturday = dayOfWeek === 0 ? 1 : dayOfWeek + 1; // كم يوم من السبت
+    // في JS: أحد=0، اثنين=1، ثلاثاء=2، أربعاء=3، خميس=4، جمعة=5، سبت=6
+    // نريد: سبت=0، أحد=1، اثنين=2، ثلاثاء=3، أربعاء=4، خميس=5، جمعة=6
+    const daysFromSaturday = (dayOfWeek + 1) % 7; // تحويل ليبدأ من السبت
     startDate.setDate(firstDay.getDate() - daysFromSaturday);
     
     const days = [];
@@ -207,23 +208,6 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
 
   return (
     <div className="daily-tracking">
-      {/* تنبيه الأيام المفقودة */}
-      {missingDays.length > 0 && (
-        <div className="missing-days-alert">
-          <div className="alert-icon">⚠️</div>
-          <div className="alert-content">
-            <h4>يوجد {missingDays.length} يوم مفقود من سجلك!</h4>
-            <p>لديك أيام لم يتم تسجيل حالة التدخين فيها منذ إنشاء حسابك</p>
-            <button 
-              className="alert-action-btn"
-              onClick={() => setShowMissingDaysForm(true)}
-            >
-              املأ البيانات المفقودة الآن
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="tracking-header">
         <h3>سجل التدخين اليومي</h3>
         <div className="header-actions">
@@ -702,6 +686,116 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
           padding: 0;
         }
 
+        .missing-days-popup-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          backdrop-filter: blur(3px);
+        }
+
+        .missing-days-popup {
+          background: white;
+          border-radius: 20px;
+          max-width: 450px;
+          width: 90%;
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+          overflow: hidden;
+          animation: popupSlideIn 0.4s ease-out;
+        }
+
+        @keyframes popupSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-30px) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .popup-header {
+          background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+          color: white;
+          padding: 20px;
+          text-align: center;
+        }
+
+        .popup-header h3 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: bold;
+        }
+
+        .popup-content {
+          padding: 25px;
+          text-align: center;
+        }
+
+        .popup-icon {
+          font-size: 3rem;
+          margin-bottom: 15px;
+        }
+
+        .popup-content h4 {
+          margin: 0 0 10px 0;
+          color: #333;
+          font-size: 1.3rem;
+          font-weight: bold;
+        }
+
+        .popup-content p {
+          margin: 0 0 20px 0;
+          color: #666;
+          line-height: 1.5;
+        }
+
+        .popup-actions {
+          display: flex;
+          gap: 15px;
+          padding: 20px;
+          border-top: 1px solid #e0e0e0;
+        }
+
+        .popup-btn {
+          flex: 1;
+          padding: 12px 20px;
+          border: none;
+          border-radius: 10px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 1rem;
+        }
+
+        .popup-btn.later {
+          background: #f5f5f5;
+          color: #666;
+          border: 1px solid #ddd;
+        }
+
+        .popup-btn.later:hover {
+          background: #e0e0e0;
+          color: #333;
+        }
+
+        .popup-btn.fill-now {
+          background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+          color: white;
+        }
+
+        .popup-btn.fill-now:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
         .missing-days-alert {
           background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
           color: white;
@@ -792,6 +886,39 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
           }
         }
       `}</style>
+
+      {/* نافذة تنبيه الأيام المفقودة */}
+      {showMissingDaysPopup && missingDays.length > 0 && (
+        <div className="missing-days-popup-overlay">
+          <div className="missing-days-popup">
+            <div className="popup-header">
+              <h3>📊 تنبيه هام</h3>
+            </div>
+            <div className="popup-content">
+              <div className="popup-icon">⚠️</div>
+              <h4>يوجد {missingDays.length} يوم غير مسجل</h4>
+              <p>لديك أيام لم يتم تسجيل حالة التدخين فيها منذ إنشاء حسابك.</p>
+            </div>
+            <div className="popup-actions">
+              <button 
+                className="popup-btn later"
+                onClick={() => setShowMissingDaysPopup(false)}
+              >
+                تذكيري لاحقاً
+              </button>
+              <button 
+                className="popup-btn fill-now"
+                onClick={() => {
+                  setShowMissingDaysPopup(false);
+                  setShowMissingDaysForm(true);
+                }}
+              >
+                املأ البيانات الآن
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* نموذج استكمال الأيام المفقودة */}
       {showMissingDaysForm && missingDays.length > 0 && (
