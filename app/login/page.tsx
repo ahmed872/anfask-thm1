@@ -107,20 +107,31 @@ const LoginPage: React.FC = () => {
           setLoginError('كلمة المرور غير صحيحة.');
           return;
         }
+
+        // التحقق من وجود السؤال الأمني
+        const hasSecurityQuestion = userData.securityQuestion && userData.securityQuestion.trim() !== '';
+        
         // حفظ اسم المستخدم في localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem('anfask-username', formData.preferredName);
           // حفظ اسم المستخدم في الكوكيز لمدة 7 أيام
           document.cookie = `anfask-username=${formData.preferredName}; path=/; max-age=${60 * 60 * 24 * 7}`;
         }
+
         setShowSuccess(true);
         createConfetti();
         setIsSubmitting(false);
+        
         setTimeout(() => {
           setShowSuccess(false);
-          router.push('/dashboard');
+          // إذا لم يكن لديه سؤال أمني، توجيهه لإضافة واحد
+          if (!hasSecurityQuestion) {
+            router.push('/add-security-question');
+          } else {
+            router.push('/dashboard');
+          }
         }, 2000);
-      } catch (error) {
+      } catch {
         setIsSubmitting(false);
         setLoginError('حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.');
       }
@@ -301,7 +312,7 @@ const LoginPage: React.FC = () => {
 
         <div className="quote-section">
           <p className="quote-text">
-            "كل نفس تتنفسه بدون دخان هو خطوة نحو مستقبل أكثر صحة وسعادة. ابدأ رحلتك اليوم واجعل كل يوم يمر أفضل من الذي قبله."
+            &ldquo;كل نفس تتنفسه بدون دخان هو خطوة نحو مستقبل أكثر صحة وسعادة. ابدأ رحلتك اليوم واجعل كل يوم يمر أفضل من الذي قبله.&rdquo;
           </p>
         </div>
       </div>

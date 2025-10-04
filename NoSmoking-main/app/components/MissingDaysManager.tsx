@@ -80,8 +80,8 @@ const MissingDaysManager: React.FC<MissingDaysManagerProps> = ({
     return null; // لا توجد أيام مفقودة
   }
 
-  const registrationDate = userData.registrationDate || userData.createdAt;
-  const lastRecordedDate = userData.lastRecordedDate || '';
+  const registrationDate: string = (userData.registrationDate || userData.createdAt || '') as string;
+  const lastRecordedDate: string = (userData.lastRecordedDate || '') as string;
   const dailyRecords = userData.dailyRecords || {};
 
   return (

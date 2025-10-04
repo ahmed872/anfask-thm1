@@ -494,6 +494,7 @@ a {
     background: linear-gradient(to right, #ff4444, #ffaa00, #44ff44);
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
     cursor: pointer;
 }
 
