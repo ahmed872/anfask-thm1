@@ -260,7 +260,7 @@ const LoginPage: React.FC = () => {
                   <span className="checkbox-custom"></span>
                   تذكرني
                 </label>
-                <a href="#" className="forgot-password">نسيت كلمة المرور؟</a>
+                <a href="/forgot-password" className="forgot-password">نسيت كلمة المرور؟</a>
               </div>
 
               <button 
