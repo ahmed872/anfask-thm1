@@ -34,8 +34,7 @@ export default function RootLayout({
           flexDirection: "column",
           minHeight: "100vh",
           margin: 0,
-          // Inline background to avoid dark flash on hard refresh before CSS loads
-          background: "linear-gradient(to bottom, #ffffff, #d8f3ff, #a0e9ff)",
+          // Keep only a light fallback to avoid dark flash; allow page CSS to control final backgrounds
           backgroundColor: "#ffffff",
         }}
       >
