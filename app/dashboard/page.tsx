@@ -6,6 +6,9 @@ import './dashboard.css'; // استيراد ملف CSS
 import '../globals.css'
 import SurveyManager from '../components/SurveyManager';
 import MoodCalendar from '../components/MoodCalendar';
+import DailyTracking from '../components/DailyTracking';
+import DailyQuestion from '../components/DailyQuestion';
+import DailyMoodTracker from '../components/DailyMoodTracker';
 
 // --- تعريفات الأنواع (Interfaces) ---
 interface UserData {
@@ -455,66 +458,13 @@ const App: React.FC = () => {
     // --- JSX لتقديم واجهة المستخدم ---
     return (
         <>
-            {/* نافذة السؤال اليومي */}
+            {/* نافذة السؤال اليومي الجديد */}
             {showDailyQuestion && (
-                <div className="modal-overlay" style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div className="modal-content" style={{
-                        backgroundColor: 'white',
-                        padding: '2rem',
-                        borderRadius: '12px',
-                        textAlign: 'center',
-                        maxWidth: '400px',
-                        margin: '1rem'
-                    }}>
-                        <h2 style={{ marginBottom: '1rem', color: '#333' }}>سؤال اليوم</h2>
-                        <p style={{ marginBottom: '2rem', fontSize: '1.1rem', color: '#666' }}>
-                            هل دخنت اليوم؟
-                        </p>
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button
-                                onClick={() => handleDailyQuestionAnswer(true)}
-                                disabled={isUpdatingFirebase}
-                                style={{
-                                    padding: '0.75rem 1.5rem',
-                                    backgroundColor: '#f44336',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem'
-                                }}
-                            >
-                                {isUpdatingFirebase ? 'جاري التحديث...' : 'نعم'}
-                            </button>
-                            <button
-                                onClick={() => handleDailyQuestionAnswer(false)}
-                                disabled={isUpdatingFirebase}
-                                style={{
-                                    padding: '0.75rem 1.5rem',
-                                    backgroundColor: '#4CAF50',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem'
-                                }}
-                            >
-                                {isUpdatingFirebase ? 'جاري التحديث...' : 'لا'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <DailyQuestion
+                    onAnswer={handleDailyQuestionAnswer}
+                    isLoading={isUpdatingFirebase}
+                    isMandatory={true}
+                />
             )}
 
             {/* تم حذف إدخال اسم المستخدم وزر تحميل البيانات */}
@@ -696,6 +646,11 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* بطاقة تتبع المزاج اليومي الجديد */}
+                        <div className="card" style={{ gridColumn: '1 / -1' }}>
+                            <DailyMoodTracker />
+                        </div>
+
                         {/* بطاقة تقويم المزاج */}
                         <div className="card" style={{ gridColumn: '1 / -1' }}>
                             <div className="card-header">
@@ -703,6 +658,20 @@ const App: React.FC = () => {
                                 <h2 className="card-title">تقويم المزاج الشهري</h2>
                             </div>
                             <MoodCalendar entries={moodHistory} />
+                        </div>
+
+                        {/* بطاقة السجل اليومي للتدخين */}
+                        <div className="card" style={{ gridColumn: '1 / -1' }}>
+                            <div className="card-header">
+                                <div className="card-icon" style={{ background: 'linear-gradient(45deg, #f44336, #ff9800)' }}>🚬</div>
+                                <h2 className="card-title">سجل التدخين اليومي</h2>
+                            </div>
+                            {userData && (
+                                <DailyTracking 
+                                    username={username} 
+                                    userCreatedAt={userData.createdAt} 
+                                />
+                            )}
                         </div>
                     </div>
                 </>

@@ -32,8 +32,11 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
     const firstDay = new Date(year, month, 1);
     const startDate = new Date(firstDay);
     
-    // العثور على بداية الأسبوع
-    startDate.setDate(firstDay.getDate() - firstDay.getDay());
+    // العثور على بداية الأسبوع (السبت = 0 في النظام العربي)
+    // تحويل: الأحد = 0 في JS إلى السبت = 0 في النظام العربي
+    const dayOfWeek = firstDay.getDay(); // 0 = أحد، 1 = اثنين، ..., 6 = سبت
+    const daysFromSaturday = dayOfWeek === 0 ? 1 : dayOfWeek + 1; // كم يوم من السبت
+    startDate.setDate(firstDay.getDate() - daysFromSaturday);
     
     const days = [];
     for (let i = 0; i < 42; i++) { // 6 أسابيع × 7 أيام
@@ -103,7 +106,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
       </div>
 
       <div className="weekdays">
-        {['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'].map(day => (
+        {['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'].map(day => (
           <div key={day} className="weekday">
             {day}
           </div>
