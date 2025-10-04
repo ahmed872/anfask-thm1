@@ -1,29 +1,34 @@
 # Dependencies
-node_modules/
-.pnp
+/node_modules
+/.pnp
 .pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Testing
-coverage/
+/coverage
 
 # Next.js
-.next/
-out/
+/.next/
+/out/
 
 # Production
-build/
+/build
+/dist
 
 # Misc
 .DS_Store
 *.tsbuildinfo
-next-env.d.ts
+.next
 
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local env files
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env*.local
 
 # Vercel
@@ -31,16 +36,51 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
+next-env.d.ts
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 Thumbs.db
+.DS_Store
 
-# Git
-.git/
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
 
 # Backup files
 *.backup
