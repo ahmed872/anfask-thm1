@@ -1,4 +1,4 @@
-// app/achievements/layout.tsx
+// app/health/layout.tsx
 
 import React from "react";
 import Navbar from '../navbar';

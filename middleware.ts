@@ -27,5 +27,7 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next|api).*)'], // نطبق الميدل وير على كل المسارات ما عدا _next و api
+  // استبعد كل الملفات الثابتة (التي تحتوي على نقطة مثل .png .jpg .css .js)
+  // بالإضافة إلى _next و api، حتى لا يتأثر تقديم الصور/الأصول بالميدلوير
+  matcher: ['/((?!_next|api|.*\\..*).*)'],
 };
