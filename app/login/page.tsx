@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
 import './login.css';
+import MissingDaysPopup from '../components/MissingDaysPopup';
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 import Image from 'next/image';
@@ -25,6 +26,9 @@ const LoginPage: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showMissingDaysPopup, setShowMissingDaysPopup] = useState<boolean>(false);
+  const [userCreatedAt, setUserCreatedAt] = useState<string>('');
+  const [loggedInUsername, setLoggedInUsername] = useState<string>('');
 
   // Effect for initial animations and cleanup
   useEffect(() => {
@@ -118,6 +122,10 @@ const LoginPage: React.FC = () => {
           document.cookie = `anfask-username=${formData.preferredName}; path=/; max-age=${60 * 60 * 24 * 7}`;
         }
 
+        // حفظ بيانات المستخدم للنافذة المنبثقة
+        setLoggedInUsername(formData.preferredName);
+        setUserCreatedAt(userData.createdAt || new Date().toISOString());
+
         setShowSuccess(true);
         createConfetti();
         setIsSubmitting(false);
@@ -128,7 +136,8 @@ const LoginPage: React.FC = () => {
           if (!hasSecurityQuestion) {
             router.push('/add-security-question');
           } else {
-            router.push('/dashboard');
+            // التحقق من وجود أيام مفقودة وإظهار النافذة المنبثقة
+            checkForMissingDays(formData.preferredName, userData.createdAt || new Date().toISOString());
           }
         }, 2000);
       } catch {
@@ -136,6 +145,55 @@ const LoginPage: React.FC = () => {
         setLoginError('حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.');
       }
     }
+  };
+
+  const checkForMissingDays = async (username: string, createdAt: string) => {
+    try {
+      const userRef = doc(db, 'users', username);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const records = userData.dailyRecords || {};
+        
+        // العثور على الأيام المفقودة
+        const startDate = new Date(createdAt);
+        const today = new Date();
+        const missing: string[] = [];
+
+        const currentDate = new Date(startDate);
+        while (currentDate <= today) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+          if (!records[dateStr]) {
+            missing.push(dateStr);
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // إذا كان هناك أيام مفقودة، إظهار النافذة المنبثقة
+        if (missing.length > 1) {
+          setShowMissingDaysPopup(true);
+        } else {
+          // إذا لم تكن هناك أيام مفقودة، انتقل للداشبورد
+          router.push('/dashboard');
+        }
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error checking missing days:', error);
+      router.push('/dashboard');
+    }
+  };
+
+  const handleMissingDaysComplete = () => {
+    setShowMissingDaysPopup(false);
+    router.push('/dashboard');
+  };
+
+  const handleMissingDaysClose = () => {
+    setShowMissingDaysPopup(false);
+    router.push('/dashboard');
   };
 
   const createFloatingParticles = () => {
@@ -316,6 +374,16 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* نافذة منبثقة للأيام المفقودة */}
+      {showMissingDaysPopup && (
+        <MissingDaysPopup
+          username={loggedInUsername}
+          userCreatedAt={userCreatedAt}
+          onClose={handleMissingDaysClose}
+          onComplete={handleMissingDaysComplete}
+        />
+      )}
     </div>
   );
 };

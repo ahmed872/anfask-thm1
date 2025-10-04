@@ -83,11 +83,11 @@ const AchievementsPage: React.FC = () => {
         if (!username) return;
         // جلب بيانات المستخدم من localStorage (نفس منطق الداشبورد)
         if (typeof window !== 'undefined') {
-            // محاولة جلب الأيام الفعلية أولاً
-            const actualDaysStr = localStorage.getItem('anfask-actualDaysWithoutSmoking');
-            if (actualDaysStr) {
-                const actualDays = parseInt(actualDaysStr);
-                setDaysSinceQuit(actualDays);
+            // استخدام الأيام الصافية للأوسمة (الأيام بدون تدخين - أيام التدخين)
+            const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
+            if (netDaysStr) {
+                const netDays = parseInt(netDaysStr);
+                setDaysSinceQuit(netDays);
                 return;
             }
             

@@ -6,7 +6,6 @@ import './dashboard.css'; // استيراد ملف CSS
 import '../globals.css'
 import SurveyManager from '../components/SurveyManager';
 import MoodCalendar from '../components/MoodCalendar';
-import DailyTracking from '../components/DailyTracking';
 import DailyQuestion from '../components/DailyQuestion';
 
 // --- تعريفات الأنواع (Interfaces) ---
@@ -187,29 +186,26 @@ const App: React.FC = () => {
         if (!username || !userData) return userData.daysWithoutSmoking || 0;
         
         try {
-            // جلب السجل اليومي
+            // جلب البيانات المحدثة من قاعدة البيانات
             const userDocRef = doc(db, 'users', username);
             const userDoc = await getDoc(userDocRef);
             
             if (userDoc.exists()) {
                 const userDataWithRecords = userDoc.data();
+                
+                // استخدام totalDaysWithoutSmoking للداشبورد (إجمالي الأيام بدون تدخين)
+                if (userDataWithRecords.totalDaysWithoutSmoking !== undefined) {
+                    return userDataWithRecords.totalDaysWithoutSmoking;
+                }
+                
+                // حساب احتياطي إذا لم تكن البيانات الجديدة متوفرة
                 const dailyRecords = userDataWithRecords.dailyRecords || {};
-                
-                // حساب الأيام التي لم يتم التدخين فيها
                 let actualDaysWithoutSmoking = 0;
-                const startDate = new Date(userData.createdAt);
-                const today = new Date();
                 
-                const currentDate = new Date(startDate);
-                while (currentDate <= today) {
-                    const dateStr = currentDate.toISOString().split('T')[0];
-                    const record = dailyRecords[dateStr];
-                    
-                    if (record && !record.smoked) {
+                for (const record of Object.values(dailyRecords)) {
+                    if (record && typeof record === 'object' && 'smoked' in record && !(record as { smoked: boolean }).smoked) {
                         actualDaysWithoutSmoking++;
                     }
-                    
-                    currentDate.setDate(currentDate.getDate() + 1);
                 }
                 
                 return actualDaysWithoutSmoking;
@@ -232,6 +228,27 @@ const App: React.FC = () => {
             setUsername(storedUsername);
         }
     }, []);
+
+    const updateNetDaysForAchievementsAndHealth = async (username: string) => {
+        try {
+            const userDocRef = doc(db, 'users', username);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const netDays = userData.netDaysWithoutSmoking || 0;
+                const totalDays = userData.totalDaysWithoutSmoking || 0;
+                
+                // حفظ في localStorage
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('anfask-netDaysWithoutSmoking', netDays.toString());
+                    localStorage.setItem('anfask-totalDaysWithoutSmoking', totalDays.toString());
+                }
+            }
+        } catch (error) {
+            console.error('Error updating net days:', error);
+        }
+    };
 
     useEffect(() => {
         if (!username) return;
@@ -271,12 +288,17 @@ const App: React.FC = () => {
         if (!username || !userData) return;
         
         const calculateAndSetActualDays = async () => {
+            console.log('Calculating actual days for:', username, userData);
             const actualDays = await calculateActualDaysWithoutSmoking(username, userData);
+            console.log('Calculated actual days:', actualDays);
             setActualDaysWithoutSmoking(actualDays);
             
             // حفظ الأيام الفعلية في localStorage لاستخدامها في صفحات أخرى
             if (typeof window !== 'undefined') {
                 localStorage.setItem('anfask-actualDaysWithoutSmoking', actualDays.toString());
+                // حفظ البيانات الجديدة للأوسمة والصحة
+                updateNetDaysForAchievementsAndHealth(username);
+                console.log('Saved actual days to localStorage:', actualDays);
             }
         };
         
@@ -428,6 +450,13 @@ const App: React.FC = () => {
         const effectiveDays = actualDaysWithoutSmoking !== null 
             ? actualDaysWithoutSmoking 
             : (userData.daysWithoutSmoking !== undefined ? userData.daysWithoutSmoking : daysSinceQuit);
+            
+        console.log('Savings calculation:', {
+            actualDaysWithoutSmoking,
+            userDataDays: userData.daysWithoutSmoking,
+            daysSinceQuit,
+            effectiveDays
+        });
             
         const dailyCost = userData.dailyCigarettes * cigarettePrice;
         return {
@@ -728,18 +757,6 @@ const App: React.FC = () => {
                         </div>
 
                         {/* بطاقة السجل اليومي للتدخين */}
-                        <div className="card" style={{ gridColumn: '1 / -1' }}>
-                            <div className="card-header">
-                                <div className="card-icon" style={{ background: 'linear-gradient(45deg, #f44336, #ff9800)' }}>🚬</div>
-                                <h2 className="card-title">سجل التدخين اليومي</h2>
-                            </div>
-                            {userData && (
-                                <DailyTracking 
-                                    username={username} 
-                                    userCreatedAt={userData.createdAt} 
-                                />
-                            )}
-                        </div>
                     </div>
                 </>
             )}

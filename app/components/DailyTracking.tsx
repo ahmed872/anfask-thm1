@@ -71,8 +71,11 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
 
     setMissingDays(missing);
     
-    // إظهار نافذة منبثقة إذا كان هناك أيام مفقودة كثيرة (أكثر من 7 أيام) وللمرة الأولى فقط
-    if (missing.length > 7 && !showMissingDaysAlert) {
+    // إظهار نافذة منبثقة إذا كان هناك أيام مفقودة (أكثر من 1 يوم) وللمرة الأولى فقط
+    console.log('Missing days count:', missing.length);
+    console.log('Show missing days alert:', showMissingDaysAlert);
+    if (missing.length > 1 && !showMissingDaysAlert) {
+      console.log('Showing missing days popup');
       setShowMissingDaysAlert(true);
       setShowMissingDaysPopup(true);
     }
@@ -208,29 +211,8 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
 
   return (
     <div className="daily-tracking">
-      <div className="tracking-header">
-        <h3>سجل التدخين اليومي</h3>
-        <div className="header-actions">
-          {missingDays.length > 0 && (
-            <button 
-              className="missing-days-btn"
-              onClick={() => setShowMissingDaysForm(true)}
-            >
-              استكمال الأيام المفقودة ({missingDays.length})
-            </button>
-          )}
-          <button 
-            className={`bulk-edit-btn ${bulkEditMode ? 'active' : ''}`}
-            onClick={() => {
-              setBulkEditMode(!bulkEditMode);
-              setSelectedDays(new Set());
-            }}
-          >
-            {bulkEditMode ? 'إلغاء التحديد المتعدد' : 'تحديد متعدد'}
-          </button>
-        </div>
-      </div>
-
+      {/* إخفاء العنوان والأزرار - النافذة المنبثقة فقط */}
+      
       <div className="month-navigation">
         <button onClick={() => setSelectedMonth(prev => {
           const newDate = new Date(prev);
