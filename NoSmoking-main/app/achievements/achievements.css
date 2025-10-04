@@ -1,0 +1,344 @@
+
+/* Achievements-specific styles */
+.achievements-container {
+    max-width: 1200px;
+    margin: 60px auto;
+    padding: 2rem;
+    animation: fadeInUp 1s ease-out;
+}
+
+.achievements-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    color: white;
+}
+
+.achievements-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.achievements-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+.progress-overview {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+.days-counter {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #4CAF50;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+    animation: countUp 2s ease-out;
+}
+
+.days-label {
+    font-size: 1.5rem;
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.progress-bar-container {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 25px;
+    height: 20px;
+    margin: 2rem 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(45deg, #4CAF50, #8BC34A);
+    border-radius: 25px;
+    transition: width 2s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.next-milestone {
+    color: #667eea;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.badge-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.badge-card.earned {
+    border: 2px solid #4CAF50;
+    box-shadow: 0 8px 32px rgba(76, 175, 80, 0.2);
+}
+
+.badge-card.locked {
+    opacity: 0.6;
+    filter: grayscale(50%);
+}
+
+.badge-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.badge-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.badge-1-day .badge-icon {
+    background: linear-gradient(45deg, #FF9800, #FFC107);
+}
+
+.badge-7-days .badge-icon {
+    background: linear-gradient(45deg, #2196F3, #03DAC6);
+}
+
+.badge-15-days .badge-icon {
+    background: linear-gradient(45deg, #9C27B0, #E91E63);
+}
+
+.badge-30-days .badge-icon {
+    background: linear-gradient(45deg, #FF5722, #FF9800);
+}
+
+.badge-60-days .badge-icon {
+    background: linear-gradient(45deg, #4CAF50, #8BC34A);
+}
+
+.badge-90-days .badge-icon {
+    background: linear-gradient(45deg, #673AB7, #9C27B0);
+}
+
+.badge-earned .badge-icon {
+    animation: bounce 0.6s ease-in-out;
+}
+
+.badge-earned .badge-icon::after {
+    content: '✓';
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 25px;
+    height: 25px;
+    background: #4CAF50;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    border: 3px solid white;
+}
+
+.badge-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.badge-description {
+    color: #666;
+    text-align: center;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.badge-requirement {
+    background: rgba(103, 126, 234, 0.1);
+    border: 1px solid rgba(103, 126, 234, 0.2);
+    border-radius: 8px;
+    padding: 0.8rem;
+    text-align: center;
+    font-weight: 600;
+    color: #667eea;
+}
+
+.badge-date {
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.2);
+    border-radius: 8px;
+    padding: 0.8rem;
+    text-align: center;
+    font-weight: 600;
+    color: #4CAF50;
+    margin-top: 1rem;
+}
+
+.locked-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+}
+
+.lock-icon {
+    font-size: 3rem;
+    color: #999;
+    opacity: 0.7;
+}
+
+.stats-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-top: 2rem;
+}
+
+.stats-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1.5rem;
+    background: rgba(103, 126, 234, 0.1);
+    border: 1px solid rgba(103, 126, 234, 0.2);
+    border-radius: 12px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: #666;
+    font-weight: 500;
+}
+
+/* Animations */
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        transform: translate3d(0, 0, 0);
+    }
+    40%, 43% {
+        transform: translate3d(0, -20px, 0);
+    }
+    70% {
+        transform: translate3d(0, -10px, 0);
+    }
+    90% {
+        transform: translate3d(0, -4px, 0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes countUp {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .achievements-container {
+        padding: 1rem;
+    }
+    
+    .badges-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .achievements-title {
+        font-size: 2rem;
+    }
+    
+    .days-counter {
+        font-size: 3rem;
+    }
+    
+    .badge-card {
+        padding: 1.5rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
