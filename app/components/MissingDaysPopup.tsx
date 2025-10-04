@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { getTodayLocalDate, getCurrentTimestamp } from '../../lib/dateUtils';
 
 interface DailyRecord {
   date: string; // YYYY-MM-DD
@@ -57,12 +58,17 @@ const MissingDaysPopup: React.FC<MissingDaysPopupProps> = ({
 
   const findMissingDays = (records: Record<string, DailyRecord>) => {
     const startDate = new Date(userCreatedAt);
-    const today = new Date();
+    const todayStr = getTodayLocalDate();
+    const today = new Date(todayStr);
     const missing: string[] = [];
 
     const currentDate = new Date(startDate);
     while (currentDate <= today) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
       if (!records[dateStr]) {
         missing.push(dateStr);
       }
@@ -97,7 +103,7 @@ const MissingDaysPopup: React.FC<MissingDaysPopupProps> = ({
         const newRecord: DailyRecord = {
           date,
           smoked,
-          recordedAt: new Date().toISOString(),
+          recordedAt: getCurrentTimestamp(),
           recordedManually: true
         };
         newRecords[date] = newRecord;

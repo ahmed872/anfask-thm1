@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { getTodayLocalDate, formatLocalDate, getCurrentTimestamp } from '../../lib/dateUtils';
 import MissingDaysForm from './MissingDaysForm';
 
 interface DailyRecord {
@@ -86,7 +87,7 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
       const newRecord: DailyRecord = {
         date,
         smoked,
-        recordedAt: new Date().toISOString(),
+        recordedAt: getCurrentTimestamp(),
         recordedManually: isManual
       };
 
@@ -103,7 +104,7 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
       setDailyRecords(updatedRecords);
       
       // تحديث daysWithoutSmoking إذا كان هذا هو اليوم الحالي
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayLocalDate();
       if (date === today) {
         await updateConsecutiveDays(updatedRecords);
       }
@@ -185,7 +186,7 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
   };
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    return formatLocalDate(date);
   };
 
   const isInRange = (date: Date) => {
@@ -243,7 +244,7 @@ const DailyTracking: React.FC<DailyTrackingProps> = ({ username, userCreatedAt }
           const record = dailyRecords[dateStr];
           const isInDateRange = isInRange(day);
           const isCurrentMonth = day.getMonth() === selectedMonth.getMonth();
-          const isToday = formatDate(day) === formatDate(new Date());
+          const isToday = dateStr === getTodayLocalDate();
           const isMissing = missingDays.includes(dateStr);
           const isSelected = selectedDays.has(dateStr);
 

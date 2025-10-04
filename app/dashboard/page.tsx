@@ -7,6 +7,7 @@ import '../globals.css'
 import SurveyManager from '../components/SurveyManager';
 import MoodCalendar from '../components/MoodCalendar';
 import DailyQuestion from '../components/DailyQuestion';
+import { getTodayLocalDate, getCurrentTimestamp } from '../../lib/dateUtils';
 
 // --- تعريفات الأنواع (Interfaces) ---
 interface UserData {
@@ -307,7 +308,7 @@ const App: React.FC = () => {
 
     // التحقق من ضرورة عرض السؤال اليومي
     const checkDailyQuestion = (data: UserData) => {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const today = getTodayLocalDate(); // YYYY-MM-DD
         const lastCheckDate = data.lastCheckDate;
         
         // إذا لم يتم السؤال اليوم، اعرض السؤال
@@ -321,7 +322,7 @@ const App: React.FC = () => {
         if (!userData || !username) return;
         
         setIsUpdatingFirebase(true);
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayLocalDate();
         
         try {
             const userRef = doc(db, 'users', username);
@@ -523,12 +524,12 @@ const App: React.FC = () => {
         setTimeout(() => {
             const newEntry: MoodEntry = {
                 id: Date.now(),
-                date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+                date: getTodayLocalDate(), // YYYY-MM-DD
                 mood: selectedMood,
                 moodLabel: selectedMoodLabel,
                 cravingLevel: cravingLevel,
                 comment: comment,
-                timestamp: new Date().toISOString()
+                timestamp: getCurrentTimestamp()
             };
 
             const updatedHistory = [newEntry, ...moodHistory];

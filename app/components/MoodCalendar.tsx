@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import { formatLocalDate, isToday } from '../../lib/dateUtils';
 
 interface MoodEntry {
   id: number;
@@ -85,12 +86,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
   };
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return formatDate(date) === formatDate(today);
+    return formatLocalDate(date);
   };
 
   return (
