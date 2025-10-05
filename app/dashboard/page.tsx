@@ -367,12 +367,30 @@ const App: React.FC = () => {
         
         try {
             const userRef = doc(db, 'users', username);
+            // جلب السجل اليومي الحالي
+            const snap = await getDoc(userRef);
+            const currentData = snap.exists() ? (snap.data() as FireUserData) : ({} as FireUserData);
+            const dailyRecords: Record<string, DailyRecord> = { ...(currentData.dailyRecords || {}) };
+            // تسجيل حالة اليوم
+            dailyRecords[today] = { smoked: didSmoke };
+            // إعادة حساب الإجماليات والصافي
+            let smokedDays = 0, nonSmokedDays = 0;
+            for (const rec of Object.values(dailyRecords)) {
+                if (!rec || typeof rec !== 'object') continue;
+                if (rec.smoked === true) smokedDays++;
+                else if (rec.smoked === false) nonSmokedDays++;
+            }
+            const totalDaysWithoutSmoking = nonSmokedDays; // للداشبورد
+            const netDaysWithoutSmoking = Math.max(0, nonSmokedDays - smokedDays); // للأوسمة/الصحة
             
             if (didSmoke) {
                 // إذا دخن، أعد تعيين العدادات
                 await updateDoc(userRef, {
                     daysWithoutSmoking: 0,
-                    lastCheckDate: today
+                    lastCheckDate: today,
+                    dailyRecords,
+                    totalDaysWithoutSmoking,
+                    netDaysWithoutSmoking
                 });
                 
                 setUserData(prev => {
@@ -386,6 +404,11 @@ const App: React.FC = () => {
                     }
                     return updated;
                 });
+                // تحديث localStorage لقيم الصحة/الأوسمة فورًا
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
+                    localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
+                }
                 
                 showNotification('تم إعادة تعيين العدادات. لا تقلق، يمكنك البدء من جديد!', 'warning');
             } else {
@@ -393,7 +416,10 @@ const App: React.FC = () => {
                 const newDays = userData.daysWithoutSmoking + 1;
                 await updateDoc(userRef, {
                     daysWithoutSmoking: newDays,
-                    lastCheckDate: today
+                    lastCheckDate: today,
+                    dailyRecords,
+                    totalDaysWithoutSmoking,
+                    netDaysWithoutSmoking
                 });
                 
                 setUserData(prev => {
@@ -407,6 +433,11 @@ const App: React.FC = () => {
                     }
                     return updated;
                 });
+                // تحديث localStorage لقيم الصحة/الأوسمة فورًا
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
+                    localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
+                }
                 
                 showNotification(`ممتاز! لقد أكملت ${newDays} يوم بدون تدخين!`, 'success');
                 createConfetti();
