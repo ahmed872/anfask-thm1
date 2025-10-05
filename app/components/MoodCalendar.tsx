@@ -31,21 +31,31 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
-    const startDate = new Date(firstDay);
+    const lastDay = new Date(year, month + 1, 0);
     
-    // العثور على بداية الأسبوع (السبت = 0 في النظام العربي)
-    // تحويل: الأحد = 0 في JS إلى السبت = 0 في النظام العربي
-    const dayOfWeek = firstDay.getDay(); // 0 = أحد، 1 = اثنين، ..., 6 = سبت
+    // الحصول على يوم الأسبوع للأول من الشهر
     // في JS: أحد=0، اثنين=1، ثلاثاء=2، أربعاء=3، خميس=4، جمعة=5، سبت=6
     // نريد: سبت=0، أحد=1، اثنين=2، ثلاثاء=3، أربعاء=4، خميس=5، جمعة=6
-    const daysFromSaturday = (dayOfWeek + 1) % 7; // تحويل ليبدأ من السبت
-    startDate.setDate(firstDay.getDate() - daysFromSaturday);
+    const firstDayOfWeek = firstDay.getDay();
+    const startOffset = firstDayOfWeek === 6 ? 0 : firstDayOfWeek + 1; // السبت = 0
     
     const days = [];
-    for (let i = 0; i < 42; i++) { // 6 أسابيع × 7 أيام
-      const day = new Date(startDate);
-      day.setDate(startDate.getDate() + i);
-      days.push(day);
+    
+    // إضافة الأيام من الشهر السابق (إذا لزم الأمر)
+    for (let i = startOffset - 1; i >= 0; i--) {
+      const prevDay = new Date(year, month, 1 - i - 1);
+      days.push(prevDay);
+    }
+    
+    // إضافة أيام الشهر الحالي
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    // إضافة الأيام من الشهر التالي لإكمال الشبكة
+    const remainingCells = 42 - days.length;
+    for (let day = 1; day <= remainingCells; day++) {
+      days.push(new Date(year, month + 1, day));
     }
     
     return days;
@@ -187,6 +197,9 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
           padding: 20px;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
           margin-top: 20px;
+          max-width: 100%;
+          overflow: hidden;
+          box-sizing: border-box;
         }
 
         .calendar-header {
@@ -229,6 +242,13 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
           margin-bottom: 10px;
         }
 
+        .weekdays {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 4px;
+          margin-bottom: 10px;
+        }
+
         .weekday {
           padding: 10px;
           text-align: center;
@@ -242,6 +262,9 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
           gap: 4px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
         }
 
         .calendar-day {
@@ -252,10 +275,12 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
           flex-direction: column;
           align-items: center;
           justify-content: space-between;
-          padding: 8px;
+          padding: 6px;
           cursor: pointer;
           transition: all 0.3s ease;
           position: relative;
+          min-height: 45px;
+          font-size: 0.85rem;
         }
 
         .calendar-day:hover {
@@ -266,6 +291,11 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
         .calendar-day.other-month {
           opacity: 0.3;
           cursor: default;
+          color: #ccc;
+        }
+
+        .calendar-day.other-month .day-number {
+          color: #ccc;
         }
 
         .calendar-day.today {
@@ -392,20 +422,163 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({ entries }) => {
 
         @media (max-width: 768px) {
           .mood-calendar {
-            padding: 15px;
+            padding: 10px;
+            margin: 5px 2px;
+            border-radius: 8px;
+          }
+
+          .calendar-header {
+            margin-bottom: 12px;
+          }
+
+          .calendar-header h3 {
+            font-size: 1rem;
+          }
+
+          .nav-button {
+            width: 32px;
+            height: 32px;
+            font-size: 1.1rem;
+          }
+
+          .weekdays {
+            gap: 2px;
+            margin-bottom: 6px;
+          }
+
+          .weekday {
+            font-size: 0.7rem;
+            padding: 4px 1px;
+            background: transparent;
+            border-radius: 4px;
+          }
+
+          .calendar-grid {
+            gap: 2px;
+            max-width: 100%;
           }
 
           .calendar-day {
-            padding: 4px;
+            padding: 3px 1px;
+            border-radius: 4px;
+            min-height: 38px;
+            font-size: 0.75rem;
+            aspect-ratio: 1;
+          }
+
+          .day-number {
+            font-size: 0.7rem;
+            margin-bottom: 1px;
           }
 
           .day-mood {
-            font-size: 0.8rem;
+            font-size: 0.65rem;
+            margin: 1px 0;
           }
 
           .craving-indicator {
-            width: 15px;
-            height: 3px;
+            width: 12px;
+            height: 2px;
+            margin-top: 1px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .mood-calendar {
+            padding: 6px;
+            margin: 3px 1px;
+          }
+
+          .calendar-header h3 {
+            font-size: 0.9rem;
+          }
+
+          .nav-button {
+            width: 28px;
+            height: 28px;
+            font-size: 0.9rem;
+          }
+
+          .weekday {
+            font-size: 0.6rem;
+            padding: 3px 0.5px;
+          }
+
+          .calendar-grid {
+            gap: 1px;
+          }
+
+          .calendar-day {
+            padding: 2px 0.5px;
+            border-radius: 3px;
+            min-height: 32px;
+            font-size: 0.7rem;
+            border-width: 1px;
+          }
+
+          .calendar-day.has-entry {
+            border-width: 2px;
+          }
+
+          .day-number {
+            font-size: 0.6rem;
+            margin-bottom: 1px;
+          }
+
+          .day-mood {
+            font-size: 0.5rem;
+            margin: 0;
+          }
+
+          .craving-indicator {
+            width: 8px;
+            height: 1.5px;
+            margin-top: 0;
+          }
+        }
+
+        @media (max-width: 320px) {
+          .mood-calendar {
+            padding: 4px;
+            margin: 2px 0;
+          }
+
+          .calendar-header h3 {
+            font-size: 0.85rem;
+          }
+
+          .nav-button {
+            width: 25px;
+            height: 25px;
+            font-size: 0.8rem;
+          }
+
+          .weekday {
+            font-size: 0.55rem;
+            padding: 2px 0;
+          }
+
+          .calendar-grid {
+            gap: 0.5px;
+          }
+
+          .calendar-day {
+            padding: 1px;
+            min-height: 28px;
+            font-size: 0.65rem;
+          }
+
+          .day-number {
+            font-size: 0.55rem;
+          }
+
+          .day-mood {
+            font-size: 0.45rem;
+          }
+
+          .craving-indicator {
+            width: 6px;
+            height: 1px;
           }
         }
       `}</style>

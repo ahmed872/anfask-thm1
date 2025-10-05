@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
@@ -24,10 +25,20 @@ const Navbar: React.FC = () => {
     <div className="dashboard-navbar">
       <div className="navbar-brand">
         <div className="navbar-logo">
-          <Link href="/home" passHref legacyBehavior>
-            <a tabIndex={0} aria-label="الذهاب إلى الصفحة الرئيسية">
-              <img src="/logo.png" alt="شعار أنفاسك تهم" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }} />
-            </a>
+          <Link
+            href="/home"
+            aria-label="الذهاب إلى الصفحة الرئيسية"
+            className="navbar-logo-link"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            <Image
+              src="/logo.png"
+              alt="شعار أنفاسك تهم"
+              width={44}
+              height={44}
+              style={{ borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }}
+              priority
+            />
           </Link>
         </div>
         <span className="navbar-title">أنفاسك تهم</span>

@@ -2,21 +2,12 @@
 // تأكد من إضافة 'use client'; في أول سطر
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // المسار الصحيح لملف الـ CSS الرئيسي (globals.css) من داخل app/achievements/
 import '../globals.css'; 
 import './achievements.css'
-import Image from 'next/image';
 
 // --- تعريفات الأنواع (Interfaces) ---
-interface UserData {
-    createdAt: string;
-    dailyCigarettes: number;
-    cigarettePrice?: number;
-    name: string;
-    daysWithoutSmoking: number;
-    lastCheckDate?: string;
-}
 
 interface Badge {
     id: number;
@@ -33,12 +24,11 @@ interface Badge {
 // --- دوال مساعدة (Helper Functions) ---
 /**
  * Animates a number counting up to a target value.
- * @param elementId The ID of the HTML element to update.
+ * @param element HTMLElement reference to update.
  * @param targetValue The final value to reach.
  * @param suffix A string suffix to append to the number (e.g., ' ر.س').
  */
-const animateNumber = (elementId: string, targetValue: number, suffix: string = '') => {
-    const element = document.getElementById(elementId);
+const animateNumber = (element: HTMLElement | null, targetValue: number, suffix: string = '') => {
     if (!element) return;
 
     const startValue = 0;
@@ -62,17 +52,28 @@ const animateNumber = (elementId: string, targetValue: number, suffix: string = 
     requestAnimationFrame(animate);
 };
 
+// تعريف ثابت لتعريف الأوسمة (ثابت لا يتغير بين الرندرات)
+const INITIAL_BADGES: Badge[] = [
+    { id: 1, name: 'بداية', description: 'أول خطوة في رحلة الإقلاع عن التدخين. كل رحلة ألف ميل تبدأ بخطوة واحدة.', requirement: 'يوم واحد خالٍ من التدخين', days: 1, icon: '🌟', earned: false, earnedDate: null, cssClass: 'badge-1-day' },
+    { id: 2, name: 'مثابرة', description: 'أسبوع كامل من القوة والعزيمة. لقد تجاوزت أصعب المراحل الأولى.', requirement: '7 أيام خالية من التدخين', days: 7, icon: '💪', earned: false, earnedDate: null, cssClass: 'badge-7-days' },
+    { id: 3, name: 'قوة', description: 'أسبوعان من الصمود والإرادة القوية. جسمك يبدأ في التعافي.', requirement: '15 يوماً خالياً من التدخين', days: 15, icon: '🔥', earned: false, earnedDate: null, cssClass: 'badge-15-days' },
+    { id: 4, name: 'عزيمة', description: 'شهر كامل من النجاح! لقد أثبت أن لديك العزيمة لتحقيق أهدافك.', requirement: '30 يوماً خالياً من التدخين', days: 30, icon: '🏆', earned: false, earnedDate: null, cssClass: 'badge-30-days' },
+    { id: 5, name: 'تحول', description: 'شهران من التغيير الإيجابي. جسمك وعقلك يشعران بالفرق الكبير.', requirement: '60 يوماً خالياً من التدخين', days: 60, icon: '🦋', earned: false, earnedDate: null, cssClass: 'badge-60-days' },
+    { id: 6, name: 'استقرار', description: 'ثلاثة أشهر من الثبات والاستقرار. لقد أصبحت مثالاً يُحتذى به.', requirement: '90 يوماً خالياً من التدخين', days: 90, icon: '💎', earned: false, earnedDate: null, cssClass: 'badge-90-days' }
+];
+
 const AchievementsPage: React.FC = () => {
-    const [userData, setUserData] = useState<UserData|null>(null);
     const [daysSinceQuit, setDaysSinceQuit] = useState<number>(0);
-    const [badges, setBadges] = useState<Badge[]>([
-        { id: 1, name: 'بداية', description: 'أول خطوة في رحلة الإقلاع عن التدخين. كل رحلة ألف ميل تبدأ بخطوة واحدة.', requirement: 'يوم واحد خالٍ من التدخين', days: 1, icon: '🌟', earned: false, earnedDate: null, cssClass: 'badge-1-day' },
-        { id: 2, name: 'مثابرة', description: 'أسبوع كامل من القوة والعزيمة. لقد تجاوزت أصعب المراحل الأولى.', requirement: '7 أيام خالية من التدخين', days: 7, icon: '💪', earned: false, earnedDate: null, cssClass: 'badge-7-days' },
-        { id: 3, name: 'قوة', description: 'أسبوعان من الصمود والإرادة القوية. جسمك يبدأ في التعافي.', requirement: '15 يوماً خالياً من التدخين', days: 15, icon: '🔥', earned: false, earnedDate: null, cssClass: 'badge-15-days' },
-        { id: 4, name: 'عزيمة', description: 'شهر كامل من النجاح! لقد أثبت أن لديك العزيمة لتحقيق أهدافك.', requirement: '30 يوماً خالياً من التدخين', days: 30, icon: '🏆', earned: false, earnedDate: null, cssClass: 'badge-30-days' },
-        { id: 5, name: 'تحول', description: 'شهران من التغيير الإيجابي. جسمك وعقلك يشعران بالفرق الكبير.', requirement: '60 يوماً خالياً من التدخين', days: 60, icon: '🦋', earned: false, earnedDate: null, cssClass: 'badge-60-days' },
-        { id: 6, name: 'استقرار', description: 'ثلاثة أشهر من الثبات والاستقرار. لقد أصبحت مثالاً يُحتذى به.', requirement: '90 يوماً خالياً من التدخين', days: 90, icon: '💎', earned: false, earnedDate: null, cssClass: 'badge-90-days' }
-    ]);
+    const [badges, setBadges] = useState<Badge[]>(INITIAL_BADGES);
+
+    // Refs for DOM elements
+    const daysCounterRef = useRef<HTMLDivElement>(null);
+    const totalBadgesRef = useRef<HTMLDivElement>(null);
+    const earnedBadgesRef = useRef<HTMLDivElement>(null);
+    const completionRateRef = useRef<HTMLDivElement>(null);
+    const longestStreakRef = useRef<HTMLDivElement>(null);
+    const progressBarRef = useRef<HTMLDivElement>(null);
+    const nextMilestoneRef = useRef<HTMLDivElement>(null);
 
     // جلب daysWithoutSmoking من localStorage/userData
     useEffect(() => {
@@ -95,7 +96,6 @@ const AchievementsPage: React.FC = () => {
             const userDataStr = localStorage.getItem('anfask-userData-' + username);
             if (userDataStr) {
                 const data = JSON.parse(userDataStr);
-                setUserData(data);
                 setDaysSinceQuit(data.daysWithoutSmoking || 0);
             }
         }
@@ -105,7 +105,7 @@ const AchievementsPage: React.FC = () => {
     useEffect(() => {
         setBadges(prevBadges => prevBadges.map(badge => {
             if (daysSinceQuit >= badge.days && !badge.earned) {
-                return { ...badge, earned: true, earnedDate: new Date().toISOString().split('T')[0] };
+                return { ...badge, earned: true, earnedDate: new Date().toLocaleDateString('ar-EG') };
             } else if (daysSinceQuit < badge.days && badge.earned) {
                 return { ...badge, earned: false, earnedDate: null };
             }
@@ -113,39 +113,38 @@ const AchievementsPage: React.FC = () => {
         }));
     }, [daysSinceQuit]);
 
-
-
+    // تأثير لتحديث الإحصائيات والرسوم المتحركة باستخدام المراجع فقط
     useEffect(() => {
-        animateNumber('daysCounter', daysSinceQuit, '');
-        const earnedCount = badges.filter(b => b.earned).length;
-        const totalCount = badges.length;
+        // Counters
+        animateNumber(daysCounterRef.current, daysSinceQuit, '');
+
+        const earnedCount = INITIAL_BADGES.filter(b => daysSinceQuit >= b.days).length;
+        const totalCount = INITIAL_BADGES.length;
         const completionRate = totalCount > 0 ? Math.round((earnedCount / totalCount) * 100) : 0;
 
-        animateNumber('totalBadges', totalCount, '');
-        animateNumber('earnedBadges', earnedCount, '');
-        animateNumber('completionRate', completionRate, '%');
-        animateNumber('longestStreak', daysSinceQuit, '');
+        animateNumber(totalBadgesRef.current, totalCount, '');
+        animateNumber(earnedBadgesRef.current, earnedCount, '');
+        animateNumber(completionRateRef.current, completionRate, '%');
+        animateNumber(longestStreakRef.current, daysSinceQuit, '');
 
-        // Update progress bar width
-        const progressBar = document.getElementById('progressBar');
-        if (progressBar) {
-            const maxDaysForProgressBar = badges[badges.length - 1]?.days || 1;
-            const progressWidth = Math.min(100, (daysSinceQuit / maxDaysForProgressBar) * 100);
-            progressBar.style.width = `${progressWidth}%`;
+        // Progress bar
+        const maxDaysForProgressBar = INITIAL_BADGES[INITIAL_BADGES.length - 1]?.days || 1;
+        const progressWidth = Math.min(100, (daysSinceQuit / maxDaysForProgressBar) * 100);
+        if (progressBarRef.current) {
+            progressBarRef.current.style.width = `${progressWidth}%`;
         }
 
-        // Update next milestone message
-        const nextMilestoneElement = document.getElementById('nextMilestone');
-        if (nextMilestoneElement) {
-            const nextUnearnedBadge = badges.find(badge => !badge.earned);
-            if (nextUnearnedBadge) {
-                const remainingDays = nextUnearnedBadge.days - daysSinceQuit;
-                nextMilestoneElement.textContent = `الوسام التالي: ${nextUnearnedBadge.name} (${remainingDays} أيام متبقية)`;
+        // Next milestone
+        const nextUnearned = INITIAL_BADGES.find(b => daysSinceQuit < b.days);
+        if (nextMilestoneRef.current) {
+            if (nextUnearned) {
+                const remainingDays = nextUnearned.days - daysSinceQuit;
+                nextMilestoneRef.current.textContent = `الوسام التالي: ${nextUnearned.name} (${remainingDays} أيام متبقية)`;
             } else {
-                nextMilestoneElement.textContent = 'تهانينا! لقد حققت جميع الأوسمة المتاحة 🎉';
+                nextMilestoneRef.current.textContent = 'تهانينا! لقد حققت جميع الأوسمة المتاحة 🎉';
             }
         }
-    }, [daysSinceQuit, badges]);
+    }, [daysSinceQuit]); // ✅ بدون badges
 
     return (
         <div className="achievements-container">
@@ -157,14 +156,14 @@ const AchievementsPage: React.FC = () => {
 
             {/* Progress Overview */}
             <div className="progress-overview">
-                <div className="days-counter" id="daysCounter">{daysSinceQuit}</div>
+                <div className="days-counter" id="daysCounter" ref={daysCounterRef}>{daysSinceQuit}</div>
                 <div className="days-label">يوماً خالياً من التدخين</div>
                 
-                <div className="progress-bar-container">
-                    <div className="progress-bar" id="progressBar" style={{ width: '0%' }}></div>
+                <div className="progress-bar-container" aria-label="شريط التقدم نحو الوسام التالي">
+                    <div className="progress-bar" id="progressBar" ref={progressBarRef} style={{ width: '0%' }}></div>
                 </div>
                 
-                <div className="next-milestone" id="nextMilestone">
+                <div className="next-milestone" id="nextMilestone" ref={nextMilestoneRef}>
                     جاري حساب الوسام التالي...
                 </div>
             </div>
@@ -172,7 +171,11 @@ const AchievementsPage: React.FC = () => {
             {/* Badges Grid */}
             <div className="badges-grid">
                 {badges.map(badge => (
-                    <div key={badge.id} className={`badge-card ${badge.cssClass} ${badge.earned ? 'earned' : 'locked'}`}>
+                    <div
+                        key={badge.id}
+                        className={`badge-card ${badge.cssClass} ${badge.earned ? 'earned' : 'locked'}`}
+                        aria-label={`وسام ${badge.name}`}
+                    >
                         <div className="badge-icon">{badge.icon}</div>
                         <h3 className="badge-title">{badge.name}</h3>
                         <p className="badge-description">{badge.description}</p>
@@ -191,20 +194,20 @@ const AchievementsPage: React.FC = () => {
             <div className="stats-section">
                 <h2 className="stats-title">إحصائيات الإنجاز</h2>
                 <div className="stats-grid">
-                    <div className="stat-item">
-                        <div className="stat-value" id="totalBadges">0</div>
+                    <div className="stat-item" aria-label="إجمالي الأوسمة">
+                        <div className="stat-value" id="totalBadges" ref={totalBadgesRef}>0</div>
                         <div className="stat-label">إجمالي الأوسمة</div>
                     </div>
-                    <div className="stat-item">
-                        <div className="stat-value" id="earnedBadges">0</div>
+                    <div className="stat-item" aria-label="الأوسمة المحققة">
+                        <div className="stat-value" id="earnedBadges" ref={earnedBadgesRef}>0</div>
                         <div className="stat-label">الأوسمة المحققة</div>
                     </div>
-                    <div className="stat-item">
-                        <div className="stat-value" id="completionRate">0%</div>
+                    <div className="stat-item" aria-label="نسبة الإنجاز">
+                        <div className="stat-value" id="completionRate" ref={completionRateRef}>0%</div>
                         <div className="stat-label">نسبة الإنجاز</div>
                     </div>
-                    <div className="stat-item">
-                        <div className="stat-value" id="longestStreak">0</div>
+                    <div className="stat-item" aria-label="أطول فترة متواصلة">
+                        <div className="stat-value" id="longestStreak" ref={longestStreakRef}>0</div>
                         <div className="stat-label">أطول فترة متواصلة</div>
                     </div>
                 </div>
@@ -217,4 +220,4 @@ const AchievementsPage: React.FC = () => {
     
 };
 
-export default AchievementsPage;
+export default React.memo(AchievementsPage);
