@@ -408,6 +408,7 @@ const App: React.FC = () => {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
                     localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
+                    localStorage.setItem('anfask-penaltyDate', today);
                 }
                 
                 showNotification('تم إعادة تعيين العدادات. لا تقلق، يمكنك البدء من جديد!', 'warning');
@@ -437,6 +438,8 @@ const App: React.FC = () => {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
                     localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
+                    // إزالة علامة العقوبة إن وُجدت
+                    localStorage.removeItem('anfask-penaltyDate');
                 }
                 
                 showNotification(`ممتاز! لقد أكملت ${newDays} يوم بدون تدخين!`, 'success');

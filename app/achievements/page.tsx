@@ -65,6 +65,7 @@ const INITIAL_BADGES: Badge[] = [
 const AchievementsPage: React.FC = () => {
     const [daysSinceQuit, setDaysSinceQuit] = useState<number>(0);
     const [badges, setBadges] = useState<Badge[]>(INITIAL_BADGES);
+    const [penaltyToday, setPenaltyToday] = useState<boolean>(false);
 
     // Refs for DOM elements
     const daysCounterRef = useRef<HTMLDivElement>(null);
@@ -84,6 +85,11 @@ const AchievementsPage: React.FC = () => {
         if (!username) return;
         // جلب بيانات المستخدم من localStorage (نفس منطق الداشبورد)
         if (typeof window !== 'undefined') {
+            const today = new Date().toISOString().slice(0,10);
+            const pDate = localStorage.getItem('anfask-penaltyDate');
+            if (pDate) {
+                setPenaltyToday(pDate === today);
+            }
             // استخدام الأيام الصافية للأوسمة (الأيام بدون تدخين - أيام التدخين)
             const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
             const totalDaysStr = localStorage.getItem('anfask-totalDaysWithoutSmoking');
@@ -165,6 +171,21 @@ const AchievementsPage: React.FC = () => {
                 <h1 className="achievements-title">أوسمة الإنجاز</h1>
                 <p className="achievements-subtitle">احتفل بكل خطوة في رحلتك نحو حياة خالية من التدخين</p>
             </div>
+
+            {/* Penalty notice */}
+            {penaltyToday && (
+                <div className="glass-box" style={{
+                    background: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 12,
+                    padding: '12px 16px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    marginBottom: 16,
+                    color: '#333'
+                }} aria-live="polite">
+                    لقد تم خصم يوم واحد من الأوسمة والصحة بسبب تسجيل يوم تدخين اليوم. استمر—العودة للطريق الصحيح تبدأ الآن 💪
+                </div>
+            )}
 
             {/* Progress Overview */}
             <div className="progress-overview">

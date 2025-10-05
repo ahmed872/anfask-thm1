@@ -2,7 +2,8 @@
 // تأكد من إضافة 'use client'; في أول سطر
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 // المسار الصحيح لملف الـ CSS الرئيسي (globals.css) من داخل app/health/
 import '../globals.css'; 
 import './health.css'
@@ -20,50 +21,22 @@ interface Milestone {
 // هذه الدوال تم نسخها من App.tsx لضمان أنها متاحة هنا. 
 // في مشروع حقيقي، قد تفضل وضعها في ملف 'utils' مشترك.
 
-/**
- * Animates a number counting up to a target value.
- * @param elementId The ID of the HTML element to update.
- * @param targetValue The final value to reach.
- * @param suffix A string suffix to append to the number (e.g., ' ر.س').
- */
-const animateNumber = (elementId: string, targetValue: number, suffix: string = '') => {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    const startValue = 0;
-    const duration = 2000;
-    const startTime = performance.now();
-
-    const animate = (currentTime: DOMHighResTimeStamp) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-        const currentValue = startValue + (targetValue - startValue) * easeOutQuart;
-        
-        element.textContent = Math.floor(currentValue).toLocaleString() + suffix;
-        
-        if (progress < 1) {
-            requestAnimationFrame(animate);
-        }
-    };
-
-    requestAnimationFrame(animate);
-};
+// (تمت إزالة دالة animateNumber غير المستخدمة في هذه الصفحة)
 
 const HealthPage: React.FC = () => {
     const [daysWithoutSmoking, setDaysWithoutSmoking] = useState<number>(0); // سيتم جلبها من localStorage
     const [lungImageSrc, setLungImageSrc] = useState<string>('/1.png'); // المسار الافتراضي لصورة الرئة
     const [lungStatusText, setLungStatusText] = useState<string>('رئتاك تتعافى بشكل ممتاز! استمر في هذا الإنجاز الرائع.');
+    const [penaltyToday, setPenaltyToday] = useState<boolean>(false);
 
-    const healthMilestones: Milestone[] = [
+    const healthMilestones: Milestone[] = useMemo(() => ([
         { days: 1, icon: '🌟', title: 'بداية التعافي', description: 'انخفاض مستوى أول أكسيد الكربون في الدم', cssClass: '' },
         { days: 3, icon: '💨', title: 'تحسن التنفس', description: 'تحسن وظائف الرئة وسهولة التنفس', cssClass: '' },
         { days: 7, icon: '👃', title: 'عودة الحواس', description: 'تحسن حاستي الشم والتذوق', cssClass: '' },
         { days: 30, icon: '🫁', title: 'تنظيف الرئتين', description: 'بداية تنظيف الرئتين من السموم', cssClass: '' },
         { days: 90, icon: '💪', title: 'تحسن الدورة الدموية', description: 'تحسن كبير في الدورة الدموية ووظائف الرئة', cssClass: '' },
         { days: 365, icon: '❤️', title: 'صحة القلب', description: 'انخفاض خطر الإصابة بأمراض القلب بنسبة 50%', cssClass: '' },
-    ];
+    ]), []);
 
     const updateLungVisualization = useCallback((days: number) => {
         let image = '/1.png'; // Default image
@@ -118,6 +91,9 @@ const HealthPage: React.FC = () => {
         }
         if (!username) return;
         if (typeof window !== 'undefined') {
+            const today = new Date().toISOString().slice(0,10);
+            const pDate = localStorage.getItem('anfask-penaltyDate');
+            if (pDate) setPenaltyToday(pDate === today);
             // استخدام الأيام الصافية للصحة (الأيام بدون تدخين - أيام التدخين)
             const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
             const totalDaysStr = localStorage.getItem('anfask-totalDaysWithoutSmoking');
@@ -151,6 +127,19 @@ const HealthPage: React.FC = () => {
 
     return (
         <div className="health-container">
+            {penaltyToday && (
+                <div className="glass-box" style={{
+                    background: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 12,
+                    padding: '12px 16px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    margin: '0 0 16px 0',
+                    color: '#333'
+                }} aria-live="polite">
+                    تم خصم يوم واحد من التقدم الصحي اليوم بسبب تسجيل يوم تدخين. تهانينا على الاستمرار، العودة أقوى دائمًا 💙
+                </div>
+            )}
             {/* Health Header */}
             <div className="health-header">
                 <h1 className="health-title">تصور التقدم الصحي</h1>
@@ -161,8 +150,8 @@ const HealthPage: React.FC = () => {
             <div className="health-grid">
                 {/* Lung Visualization Card */}
                 <div className="lung-card">
-                    <div className="lung-visual-container">
-                        <img id="lungImage" src={lungImageSrc} alt="صورة الرئة" style={{ width: '90%', height: '80%', objectFit: 'contain', objectPosition: 'center center', display: 'block', margin: 'auto', transition: 'all 1s' }} />
+                    <div className="lung-visual-container" style={{ position: 'relative', width: '100%', height: '260px' }}>
+                        <Image id="lungImage" src={lungImageSrc} alt="صورة الرئة" fill style={{ objectFit: 'contain', objectPosition: 'center center' }} />
                     </div>
                     
                     <div className="health-controls">
