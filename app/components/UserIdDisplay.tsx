@@ -36,19 +36,42 @@ const UserIdDisplay: React.FC<UserIdDisplayProps> = ({
   }, [username]);
 
   const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(userId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // إعادة تعيين الحالة بعد ثانيتين
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      // Fallback للمتصفحات القديمة
+    if (!userId || userId === 'غير متاح') return;
+
+    const fallbackCopy = (text: string) => {
       const textArea = document.createElement('textarea');
-      textArea.value = userId;
+      textArea.value = text;
+      // وضعه خارج الشاشة لتجنب القفز
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
+      textArea.focus();
       textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
+      try {
+        document.execCommand('copy');
+      } finally {
+        document.body.removeChild(textArea);
+      }
+    };
+
+    try {
+      const canUseClipboardApi = typeof navigator !== 'undefined'
+        && typeof window !== 'undefined'
+        && 'clipboard' in navigator
+        && window.isSecureContext
+        && typeof navigator.clipboard?.writeText === 'function';
+
+      if (canUseClipboardApi) {
+        await navigator.clipboard.writeText(userId);
+      } else {
+        fallbackCopy(userId);
+      }
+
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy (retrying with fallback):', error);
+      fallbackCopy(userId);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
