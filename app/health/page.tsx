@@ -28,6 +28,7 @@ const HealthPage: React.FC = () => {
     const [lungImageSrc, setLungImageSrc] = useState<string>('/1.png'); // المسار الافتراضي لصورة الرئة
     const [lungStatusText, setLungStatusText] = useState<string>('رئتاك تتعافى بشكل ممتاز! استمر في هذا الإنجاز الرائع.');
     const [penaltyToday, setPenaltyToday] = useState<boolean>(false);
+    const [penaltyDate, setPenaltyDate] = useState<string | null>(null);
 
     const healthMilestones: Milestone[] = useMemo(() => ([
         { days: 1, icon: '🌟', title: 'بداية التعافي', description: 'انخفاض مستوى أول أكسيد الكربون في الدم', cssClass: '' },
@@ -93,7 +94,10 @@ const HealthPage: React.FC = () => {
         if (typeof window !== 'undefined') {
             const today = new Date().toISOString().slice(0,10);
             const pDate = localStorage.getItem('anfask-penaltyDate');
-            if (pDate) setPenaltyToday(pDate === today);
+            if (pDate) {
+                setPenaltyDate(pDate);
+                setPenaltyToday(pDate === today);
+            }
             // استخدام الأيام الصافية للصحة (الأيام بدون تدخين - أيام التدخين)
             const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
             const totalDaysStr = localStorage.getItem('anfask-totalDaysWithoutSmoking');
@@ -137,7 +141,9 @@ const HealthPage: React.FC = () => {
                     margin: '0 0 16px 0',
                     color: '#333'
                 }} aria-live="polite">
-                    تم خصم يوم واحد من التقدم الصحي اليوم بسبب تسجيل يوم تدخين. تهانينا على الاستمرار، العودة أقوى دائمًا 💙
+                    تم خصم يوم واحد من التقدم الصحي بسبب تسجيل يوم تدخين بتاريخ {' '}
+                    <strong>{penaltyDate ? new Date(penaltyDate + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ar-EG')}</strong>.
+                    {' '}تهانينا على الاستمرار، العودة أقوى دائمًا 💙
                 </div>
             )}
             {/* Health Header */}

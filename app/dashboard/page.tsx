@@ -509,6 +509,8 @@ const App: React.FC = () => {
     const [cravingLevel, setCravingLevel] = useState<number>(0);
     const [comment, setComment] = useState<string>('');
     const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [penaltyDate, setPenaltyDate] = useState<string | null>(null);
+    const [penaltyToday, setPenaltyToday] = useState<boolean>(false);
 
     // --- المراجع (Refs) للعناصر ---
     const saveButtonRef = useRef<HTMLButtonElement>(null);
@@ -704,8 +706,39 @@ const App: React.FC = () => {
 
             {!userData ? <div style={{textAlign:'center'}}>يرجى إدخال اسم المستخدم لعرض البيانات</div> : null}
             
-            {userData && (
+                        {userData && (
                 <>                  
+                                        {/* إشعار العقوبة لليوم (إن وُجد) */}
+                                        {(typeof window !== 'undefined') && (() => {
+                                                if (penaltyDate === null) {
+                                                        const p = localStorage.getItem('anfask-penaltyDate');
+                                                        const today = getTodayLocalDate();
+                                                        setPenaltyDate(p);
+                                                        setPenaltyToday(!!p && p === today);
+                                                }
+                                                return null;
+                                        })()}
+
+                                        {penaltyDate && penaltyToday && (
+                                                <div
+                                                    className="penalty-banner"
+                                                    aria-live="polite"
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.95)',
+                                                        backdropFilter: 'blur(8px)',
+                                                        border: '1px solid rgba(0,0,0,0.05)',
+                                                        borderRadius: 12,
+                                                        padding: '10px 14px',
+                                                        margin: '10px auto',
+                                                        maxWidth: 900,
+                                                        color: '#333'
+                                                    }}
+                                                >
+                                                    تم خصم يوم واحد من الأوسمة والصحة بسبب تسجيل يوم تدخين بتاريخ {' '}
+                                                    <strong>{new Date(penaltyDate + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                                                </div>
+                                        )}
+
                     {/* المحتوى الرئيسي */}
                     <div className="container">
                         <div className="welcome-section">
