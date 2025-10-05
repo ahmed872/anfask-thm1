@@ -66,6 +66,8 @@ const AchievementsPage: React.FC = () => {
     const [daysSinceQuit, setDaysSinceQuit] = useState<number>(0);
     const [badges, setBadges] = useState<Badge[]>(INITIAL_BADGES);
     const [penaltyToday, setPenaltyToday] = useState<boolean>(false);
+    const [penaltyDate, setPenaltyDate] = useState<string | null>(null);
+    const [hidePenaltyBanner, setHidePenaltyBanner] = useState<boolean>(false);
 
     // Refs for DOM elements
     const daysCounterRef = useRef<HTMLDivElement>(null);
@@ -88,7 +90,12 @@ const AchievementsPage: React.FC = () => {
             const today = new Date().toISOString().slice(0,10);
             const pDate = localStorage.getItem('anfask-penaltyDate');
             if (pDate) {
+                setPenaltyDate(pDate);
                 setPenaltyToday(pDate === today);
+                // check session dismissal per day
+                if (sessionStorage.getItem(`anfask-dismiss-penalty-${pDate}`) === '1') {
+                    setHidePenaltyBanner(true);
+                }
             }
             // استخدام الأيام الصافية للأوسمة (الأيام بدون تدخين - أيام التدخين)
             const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
@@ -173,7 +180,7 @@ const AchievementsPage: React.FC = () => {
             </div>
 
             {/* Penalty notice */}
-            {penaltyToday && (
+            {penaltyToday && !hidePenaltyBanner && (
                 <div className="glass-box" style={{
                     background: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(10px)',
@@ -183,9 +190,22 @@ const AchievementsPage: React.FC = () => {
                     marginBottom: 16,
                     color: '#333'
                 }} aria-live="polite">
-                    لقد تم خصم يوم واحد من الأوسمة والصحة بسبب تسجيل يوم تدخين بتاريخ {' '}
-                    <strong>{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
-                    {' '}استمر—العودة للطريق الصحيح تبدأ الآن 💪
+                    <div style={{ display: 'flex', alignItems: 'start', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                            لقد تم خصم يوم واحد من الأوسمة والصحة بسبب تسجيل يوم تدخين بتاريخ{' '}
+                            <strong>{penaltyDate ? new Date(penaltyDate + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ar-EG')}</strong>.
+                            {' '}استمر—العودة للطريق الصحيح تبدأ الآن 💪
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (!penaltyDate) return;
+                                try { sessionStorage.setItem(`anfask-dismiss-penalty-${penaltyDate}`, '1'); } catch {}
+                                setHidePenaltyBanner(true);
+                            }}
+                            aria-label="إخفاء هذا التنبيه لليوم"
+                            style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', fontSize: 16, padding: 4 }}
+                        >✕</button>
+                    </div>
                 </div>
             )}
 

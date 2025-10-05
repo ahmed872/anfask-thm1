@@ -29,6 +29,7 @@ const HealthPage: React.FC = () => {
     const [lungStatusText, setLungStatusText] = useState<string>('رئتاك تتعافى بشكل ممتاز! استمر في هذا الإنجاز الرائع.');
     const [penaltyToday, setPenaltyToday] = useState<boolean>(false);
     const [penaltyDate, setPenaltyDate] = useState<string | null>(null);
+    const [hidePenaltyBanner, setHidePenaltyBanner] = useState<boolean>(false);
 
     const healthMilestones: Milestone[] = useMemo(() => ([
         { days: 1, icon: '🌟', title: 'بداية التعافي', description: 'انخفاض مستوى أول أكسيد الكربون في الدم', cssClass: '' },
@@ -97,6 +98,9 @@ const HealthPage: React.FC = () => {
             if (pDate) {
                 setPenaltyDate(pDate);
                 setPenaltyToday(pDate === today);
+                if (sessionStorage.getItem(`anfask-dismiss-penalty-${pDate}`) === '1') {
+                    setHidePenaltyBanner(true);
+                }
             }
             // استخدام الأيام الصافية للصحة (الأيام بدون تدخين - أيام التدخين)
             const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
@@ -131,7 +135,7 @@ const HealthPage: React.FC = () => {
 
     return (
         <div className="health-container">
-            {penaltyToday && (
+            {penaltyToday && !hidePenaltyBanner && (
                 <div className="glass-box" style={{
                     background: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(10px)',
@@ -141,9 +145,22 @@ const HealthPage: React.FC = () => {
                     margin: '0 0 16px 0',
                     color: '#333'
                 }} aria-live="polite">
-                    تم خصم يوم واحد من التقدم الصحي بسبب تسجيل يوم تدخين بتاريخ {' '}
-                    <strong>{penaltyDate ? new Date(penaltyDate + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ar-EG')}</strong>.
-                    {' '}تهانينا على الاستمرار، العودة أقوى دائمًا 💙
+                    <div style={{ display: 'flex', alignItems: 'start', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                            تم خصم يوم واحد من التقدم الصحي بسبب تسجيل يوم تدخين بتاريخ{' '}
+                            <strong>{penaltyDate ? new Date(penaltyDate + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('ar-EG')}</strong>.
+                            {' '}تهانينا على الاستمرار، العودة أقوى دائمًا 💙
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (!penaltyDate) return;
+                                try { sessionStorage.setItem(`anfask-dismiss-penalty-${penaltyDate}`, '1'); } catch {}
+                                setHidePenaltyBanner(true);
+                            }}
+                            aria-label="إخفاء هذا التنبيه لليوم"
+                            style={{ background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', fontSize: 16, padding: 4 }}
+                        >✕</button>
+                    </div>
                 </div>
             )}
             {/* Health Header */}

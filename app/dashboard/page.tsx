@@ -410,6 +410,8 @@ const App: React.FC = () => {
                     localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
                     localStorage.setItem('anfask-penaltyDate', today);
                 }
+                setPenaltyDate(today);
+                setPenaltyToday(true);
                 
                 showNotification('تم إعادة تعيين العدادات. لا تقلق، يمكنك البدء من جديد!', 'warning');
             } else {
@@ -441,6 +443,8 @@ const App: React.FC = () => {
                     // إزالة علامة العقوبة إن وُجدت
                     localStorage.removeItem('anfask-penaltyDate');
                 }
+                setPenaltyDate(null);
+                setPenaltyToday(false);
                 
                 showNotification(`ممتاز! لقد أكملت ${newDays} يوم بدون تدخين!`, 'success');
                 createConfetti();
@@ -495,7 +499,14 @@ const App: React.FC = () => {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('moodHistory');
-            if (saved) setMoodHistory(JSON.parse(saved));
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) setMoodHistory(parsed);
+                } catch {
+                    // ignore malformed localStorage content
+                }
+            }
         }
     }, []);
 
@@ -511,6 +522,18 @@ const App: React.FC = () => {
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const [penaltyDate, setPenaltyDate] = useState<string | null>(null);
     const [penaltyToday, setPenaltyToday] = useState<boolean>(false);
+    const [hidePenaltyBanner, setHidePenaltyBanner] = useState<boolean>(false);
+
+    const safeFormatPenaltyDate = (dateStr: string | null): string | null => {
+        if (!dateStr) return null;
+        try {
+            const d = new Date(dateStr + 'T00:00:00');
+            if (isNaN(d.getTime())) return null;
+            return d.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        } catch {
+            return null;
+        }
+    };
 
     // --- المراجع (Refs) للعناصر ---
     const saveButtonRef = useRef<HTMLButtonElement>(null);
@@ -634,6 +657,22 @@ const App: React.FC = () => {
         if (userData) updateWelcomeMessage();
     }, [userData, updateWelcomeMessage]);
 
+    // قراءة حالة العقوبة من localStorage عند التحميل وأي تغييرات لاحقة ذات صلة
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const p = localStorage.getItem('anfask-penaltyDate');
+        setPenaltyDate(p);
+        const today = getTodayLocalDate();
+        const isTodayPenalty = !!p && p === today;
+        setPenaltyToday(isTodayPenalty);
+        // Check session dismissal per day
+        if (p && sessionStorage.getItem(`anfask-dismiss-penalty-${p}`) === '1') {
+            setHidePenaltyBanner(true);
+        } else {
+            setHidePenaltyBanner(false);
+        }
+    }, [showDailyQuestion]);
+
     // --- JSX لتقديم واجهة المستخدم ---
     return (
         <>
@@ -706,20 +745,10 @@ const App: React.FC = () => {
 
             {!userData ? <div style={{textAlign:'center'}}>يرجى إدخال اسم المستخدم لعرض البيانات</div> : null}
             
-                        {userData && (
-                <>                  
-                                        {/* إشعار العقوبة لليوم (إن وُجد) */}
-                                        {(typeof window !== 'undefined') && (() => {
-                                                if (penaltyDate === null) {
-                                                        const p = localStorage.getItem('anfask-penaltyDate');
-                                                        const today = getTodayLocalDate();
-                                                        setPenaltyDate(p);
-                                                        setPenaltyToday(!!p && p === today);
-                                                }
-                                                return null;
-                                        })()}
-
-                                        {penaltyDate && penaltyToday && (
+                                    {userData && (
+                                            <>                  
+                                                    {/* إشعار العقوبة لليوم (إن وُجد) */}
+                                                    {penaltyDate && penaltyToday && !hidePenaltyBanner && (
                                                 <div
                                                     className="penalty-banner"
                                                     aria-live="polite"
@@ -734,8 +763,28 @@ const App: React.FC = () => {
                                                         color: '#333'
                                                     }}
                                                 >
-                                                    تم خصم يوم واحد من الأوسمة والصحة بسبب تسجيل يوم تدخين بتاريخ {' '}
-                                                    <strong>{new Date(penaltyDate + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                                                    <div style={{ display: 'flex', alignItems: 'start', gap: 12 }}>
+                                                        <div style={{ flex: 1 }}>
+                                                            تم خصم يوم واحد من الأوسمة والصحة بسبب تسجيل يوم تدخين بتاريخ{' '}
+                                                            <strong>{safeFormatPenaltyDate(penaltyDate) ?? new Date().toLocaleDateString('ar-EG')}</strong>.
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (!penaltyDate) return;
+                                                                try { sessionStorage.setItem(`anfask-dismiss-penalty-${penaltyDate}`, '1'); } catch {}
+                                                                setHidePenaltyBanner(true);
+                                                            }}
+                                                            aria-label="إخفاء هذا التنبيه لليوم"
+                                                            style={{
+                                                                background: 'transparent',
+                                                                border: 'none',
+                                                                color: '#666',
+                                                                cursor: 'pointer',
+                                                                fontSize: 16,
+                                                                padding: 4
+                                                            }}
+                                                        >✕</button>
+                                                    </div>
                                                 </div>
                                         )}
 
