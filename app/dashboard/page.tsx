@@ -228,13 +228,12 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        // جلب اسم المستخدم من localStorage إذا كان موجودًا
-        let storedUsername = '';
-        if (typeof window !== 'undefined') {
-            storedUsername = localStorage.getItem('anfask-username') || '';
-        }
-        if (storedUsername) {
-            setUsername(storedUsername);
+        // جلب اسم المستخدم من localStorage إذا كان موجودًا (بشكل آمن)
+        try {
+            const storedUsername = typeof window !== 'undefined' ? (localStorage.getItem('anfask-username') || '') : '';
+            if (storedUsername) setUsername(storedUsername);
+        } catch {
+            // تجاهل أي مشاكل وصول للتخزين
         }
     }, []);
 
@@ -309,9 +308,7 @@ const App: React.FC = () => {
                     }
 
                     // حفظ daysWithoutSmoking في localStorage ليستخدم في باقي الصفحات
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem('anfask-userData-' + username, JSON.stringify(data));
-                    }
+                    try { if (typeof window !== 'undefined') localStorage.setItem('anfask-userData-' + username, JSON.stringify(data)); } catch {}
 
                     // التحقق من ضرورة عرض السؤال اليومي
                     checkDailyQuestion(data);
@@ -336,12 +333,10 @@ const App: React.FC = () => {
             setActualDaysWithoutSmoking(actualDays);
             
             // حفظ الأيام الفعلية في localStorage لاستخدامها في صفحات أخرى
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('anfask-actualDaysWithoutSmoking', actualDays.toString());
-                // حفظ البيانات الجديدة للأوسمة والصحة
-                updateNetDaysForAchievementsAndHealth(username);
-                console.log('Saved actual days to localStorage:', actualDays);
-            }
+            try { if (typeof window !== 'undefined') localStorage.setItem('anfask-actualDaysWithoutSmoking', actualDays.toString()); } catch {}
+            // حفظ البيانات الجديدة للأوسمة والصحة
+            updateNetDaysForAchievementsAndHealth(username);
+            console.log('Saved actual days to localStorage:', actualDays);
         };
         
         calculateAndSetActualDays();
@@ -400,16 +395,18 @@ const App: React.FC = () => {
                         lastCheckDate: today
                     } : null;
                     if (updated && typeof window !== 'undefined') {
-                        localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated));
+                        try { localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated)); } catch {}
                     }
                     return updated;
                 });
                 // تحديث localStorage لقيم الصحة/الأوسمة فورًا
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
-                    localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
-                    localStorage.setItem('anfask-penaltyDate', today);
-                }
+                try {
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
+                        localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
+                        localStorage.setItem('anfask-penaltyDate', today);
+                    }
+                } catch {}
                 setPenaltyDate(today);
                 setPenaltyToday(true);
                 
@@ -432,17 +429,19 @@ const App: React.FC = () => {
                         lastCheckDate: today
                     } : null;
                     if (updated && typeof window !== 'undefined') {
-                        localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated));
+                        try { localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated)); } catch {}
                     }
                     return updated;
                 });
                 // تحديث localStorage لقيم الصحة/الأوسمة فورًا
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
-                    localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
-                    // إزالة علامة العقوبة إن وُجدت
-                    localStorage.removeItem('anfask-penaltyDate');
-                }
+                try {
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
+                        localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
+                        // إزالة علامة العقوبة إن وُجدت
+                        localStorage.removeItem('anfask-penaltyDate');
+                    }
+                } catch {}
                 setPenaltyDate(null);
                 setPenaltyToday(false);
                 
@@ -455,9 +454,7 @@ const App: React.FC = () => {
             setActualDaysWithoutSmoking(actualDays);
             
             // حفظ الأيام الفعلية في localStorage
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('anfask-actualDaysWithoutSmoking', actualDays.toString());
-            }
+            try { if (typeof window !== 'undefined') localStorage.setItem('anfask-actualDaysWithoutSmoking', actualDays.toString()); } catch {}
             
         } catch {
             showNotification('حدث خطأ أثناء تحديث البيانات', 'error');
@@ -483,7 +480,7 @@ const App: React.FC = () => {
                     cigarettePrice: cigarettePrice
                 } : null;
                 if (updated && typeof window !== 'undefined') {
-                    localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated));
+                    try { localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated)); } catch {}
                 }
                 return updated;
             });
@@ -636,7 +633,7 @@ const App: React.FC = () => {
             setMoodHistory(updatedHistory);
             // تأكد أن الكود يعمل في المتصفح قبل الوصول إلى localStorage
             if (typeof window !== 'undefined') {
-                localStorage.setItem('moodHistory', JSON.stringify(updatedHistory));
+                try { localStorage.setItem('moodHistory', JSON.stringify(updatedHistory)); } catch {}
             }
 
             showNotification('تم حفظ بياناتك بنجاح!', 'success');
@@ -660,15 +657,26 @@ const App: React.FC = () => {
     // قراءة حالة العقوبة من localStorage عند التحميل وأي تغييرات لاحقة ذات صلة
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        const p = localStorage.getItem('anfask-penaltyDate');
-        setPenaltyDate(p);
-        const today = getTodayLocalDate();
-        const isTodayPenalty = !!p && p === today;
-        setPenaltyToday(isTodayPenalty);
-        // Check session dismissal per day
-        if (p && sessionStorage.getItem(`anfask-dismiss-penalty-${p}`) === '1') {
-            setHidePenaltyBanner(true);
-        } else {
+        try {
+            const p = localStorage.getItem('anfask-penaltyDate');
+            setPenaltyDate(p);
+            const today = getTodayLocalDate();
+            const isTodayPenalty = !!p && p === today;
+            setPenaltyToday(isTodayPenalty);
+            // Check session dismissal per day
+            if (p) {
+                try {
+                    const dismissed = sessionStorage.getItem(`anfask-dismiss-penalty-${p}`) === '1';
+                    setHidePenaltyBanner(!!dismissed);
+                } catch {
+                    setHidePenaltyBanner(false);
+                }
+            } else {
+                setHidePenaltyBanner(false);
+            }
+        } catch {
+            setPenaltyDate(null);
+            setPenaltyToday(false);
             setHidePenaltyBanner(false);
         }
     }, [showDailyQuestion]);
