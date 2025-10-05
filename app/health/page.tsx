@@ -110,7 +110,7 @@ const HealthPage: React.FC = () => {
         updateLungVisualization(daysWithoutSmoking);
     }, [daysWithoutSmoking, updateLungVisualization]);
 
-    // جلب daysWithoutSmoking من localStorage/userData
+    // جلب daysWithoutSmoking من localStorage/userData (مع علاج للحسابات القديمة)
     useEffect(() => {
         let username = '';
         if (typeof window !== 'undefined') {
@@ -120,17 +120,31 @@ const HealthPage: React.FC = () => {
         if (typeof window !== 'undefined') {
             // استخدام الأيام الصافية للصحة (الأيام بدون تدخين - أيام التدخين)
             const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
+            const totalDaysStr = localStorage.getItem('anfask-totalDaysWithoutSmoking');
             if (netDaysStr) {
                 const netDays = parseInt(netDaysStr);
-                setDaysWithoutSmoking(netDays);
-                return;
+                if (Number.isFinite(netDays) && netDays > 0) {
+                    setDaysWithoutSmoking(netDays);
+                    return;
+                }
+                // لو صفر/غير صالح، جرّب الإجمالي كحل مؤقت للحسابات القديمة
+                if (totalDaysStr) {
+                    const totalDays = parseInt(totalDaysStr);
+                    if (Number.isFinite(totalDays) && totalDays > 0) {
+                        setDaysWithoutSmoking(totalDays);
+                        // صحّح القيمة في localStorage للمستقبل
+                        localStorage.setItem('anfask-netDaysWithoutSmoking', String(totalDays));
+                        return;
+                    }
+                }
             }
             
             // إذا لم تكن متوفرة، استخدم البيانات التقليدية
             const userDataStr = localStorage.getItem('anfask-userData-' + username);
             if (userDataStr) {
                 const data = JSON.parse(userDataStr);
-                setDaysWithoutSmoking(data.daysWithoutSmoking || 0);
+                const fallbackDays = Number.isFinite(data?.daysWithoutSmoking) ? (data.daysWithoutSmoking || 0) : 0;
+                setDaysWithoutSmoking(fallbackDays);
             }
         }
     }, []);

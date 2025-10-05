@@ -75,7 +75,7 @@ const AchievementsPage: React.FC = () => {
     const progressBarRef = useRef<HTMLDivElement>(null);
     const nextMilestoneRef = useRef<HTMLDivElement>(null);
 
-    // جلب daysWithoutSmoking من localStorage/userData
+    // جلب daysWithoutSmoking من localStorage/userData (مع علاج للحسابات القديمة)
     useEffect(() => {
         let username = '';
         if (typeof window !== 'undefined') {
@@ -86,17 +86,29 @@ const AchievementsPage: React.FC = () => {
         if (typeof window !== 'undefined') {
             // استخدام الأيام الصافية للأوسمة (الأيام بدون تدخين - أيام التدخين)
             const netDaysStr = localStorage.getItem('anfask-netDaysWithoutSmoking');
+            const totalDaysStr = localStorage.getItem('anfask-totalDaysWithoutSmoking');
             if (netDaysStr) {
                 const netDays = parseInt(netDaysStr);
-                setDaysSinceQuit(netDays);
-                return;
+                if (Number.isFinite(netDays) && netDays > 0) {
+                    setDaysSinceQuit(netDays);
+                    return;
+                }
+                if (totalDaysStr) {
+                    const totalDays = parseInt(totalDaysStr);
+                    if (Number.isFinite(totalDays) && totalDays > 0) {
+                        setDaysSinceQuit(totalDays);
+                        localStorage.setItem('anfask-netDaysWithoutSmoking', String(totalDays));
+                        return;
+                    }
+                }
             }
             
             // إذا لم تكن متوفرة، استخدم البيانات التقليدية
             const userDataStr = localStorage.getItem('anfask-userData-' + username);
             if (userDataStr) {
                 const data = JSON.parse(userDataStr);
-                setDaysSinceQuit(data.daysWithoutSmoking || 0);
+                const fallbackDays = Number.isFinite(data?.daysWithoutSmoking) ? (data.daysWithoutSmoking || 0) : 0;
+                setDaysSinceQuit(fallbackDays);
             }
         }
     }, []);

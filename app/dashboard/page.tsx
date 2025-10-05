@@ -19,6 +19,14 @@ interface UserData {
     lastCheckDate?: string; // تاريخ آخر فحص يومي
 }
 
+// بيانات المستخدم في Firestore قد تحتوي على حقول إضافية
+interface DailyRecord { smoked?: boolean }
+interface FireUserData extends UserData {
+    dailyRecords?: Record<string, DailyRecord>;
+    netDaysWithoutSmoking?: number;
+    totalDaysWithoutSmoking?: number;
+}
+
 type MoodType = 'happy' | 'motivated' | 'tired' | 'stressed';
 
 interface MoodEntry {
@@ -236,14 +244,47 @@ const App: React.FC = () => {
             const userDoc = await getDoc(userDocRef);
             
             if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const netDays = userData.netDaysWithoutSmoking || 0;
-                const totalDays = userData.totalDaysWithoutSmoking || 0;
+                const data = userDoc.data() as FireUserData;
+                let netDays: number | undefined = data.netDaysWithoutSmoking;
+                let totalDays: number | undefined = data.totalDaysWithoutSmoking;
+
+                // إذا القيم غير موجودة (حساب للحسابات القديمة)
+                if (netDays === undefined || totalDays === undefined) {
+                    const dailyRecords = data.dailyRecords || {};
+                    let smokedDays = 0;
+                    let nonSmokedDays = 0;
+                    for (const rec of Object.values(dailyRecords)) {
+                        if (!rec || typeof rec !== 'object') continue;
+                        if (rec.smoked === true) smokedDays++;
+                        else if (rec.smoked === false) nonSmokedDays++;
+                    }
+                    const derivedTotal = nonSmokedDays; // إجمالي الأيام بدون تدخين (للداشبورد)
+                    const derivedNet = Math.max(0, nonSmokedDays - smokedDays); // صافي الأيام (للأوسمة/الصحة)
+
+                    if (totalDays === undefined) totalDays = derivedTotal;
+                    if (netDays === undefined) netDays = derivedNet;
+
+                    // محاولة حفظ القيم المحسوبة في Firestore (اختياري)
+                    try {
+                        const updatePayload: Partial<Pick<FireUserData, 'totalDaysWithoutSmoking' | 'netDaysWithoutSmoking'>> = {};
+                        if (data.totalDaysWithoutSmoking === undefined) updatePayload.totalDaysWithoutSmoking = totalDays;
+                        if (data.netDaysWithoutSmoking === undefined) updatePayload.netDaysWithoutSmoking = netDays;
+                        if (Object.keys(updatePayload).length > 0) {
+                            await updateDoc(userDocRef, updatePayload);
+                        }
+                    } catch (e) {
+                        console.warn('Could not persist derived days to Firestore:', e);
+                    }
+                }
+
+                // تأكد من عدم undefined
+                const safeNet = Number.isFinite(netDays as number) ? (netDays as number) : 0;
+                const safeTotal = Number.isFinite(totalDays as number) ? (totalDays as number) : 0;
                 
                 // حفظ في localStorage
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem('anfask-netDaysWithoutSmoking', netDays.toString());
-                    localStorage.setItem('anfask-totalDaysWithoutSmoking', totalDays.toString());
+                    localStorage.setItem('anfask-netDaysWithoutSmoking', safeNet.toString());
+                    localStorage.setItem('anfask-totalDaysWithoutSmoking', safeTotal.toString());
                 }
             }
         } catch (error) {
