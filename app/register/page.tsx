@@ -19,6 +19,8 @@ interface FormData {
   dailyCigarettes: number | "";
   dataConsent: boolean;
   communityRules: boolean;
+  quitAttempts: string; // كم مرة حاولت الإقلاع
+  favoriteColor: string; // اللون المفضل
 }
 
 const RegistrationPage: React.FC = () => {
@@ -37,6 +39,8 @@ const RegistrationPage: React.FC = () => {
     password: '',
     dataConsent: false,
     communityRules: false,
+    quitAttempts: '',
+    favoriteColor: ''
   });
   const [usernameError, setUsernameError] = useState('');
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
@@ -390,6 +394,28 @@ const checked = (e.target as HTMLInputElement).checked;
                   </div>
                 </div>
 
+                <div className="form-group">
+                  <label htmlFor="favoriteColor">اللون المفضل</label>
+                  <select
+                    id="favoriteColor"
+                    name="favoriteColor"
+                    value={formData.favoriteColor}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">اختر لونك المفضل</option>
+                    <option value="blue">أزرق</option>
+                    <option value="green">أخضر</option>
+                    <option value="red">أحمر</option>
+                    <option value="purple">بنفسجي</option>
+                    <option value="orange">برتقالي</option>
+                    <option value="black">أسود</option>
+                    <option value="white">أبيض</option>
+                    <option value="other">آخر</option>
+                  </select>
+                  <div className="field-icon">🎨</div>
+                </div>
+
                 <button type="button" className="next-btn" onClick={nextStep}>
                   التالي
                 </button>
@@ -527,6 +553,24 @@ const checked = (e.target as HTMLInputElement).checked;
                     required
                   />
                   <div className="field-icon">🚬</div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="quitAttempts">كم مرة حاولت الإقلاع عن التدخين؟</label>
+                  <select
+                    id="quitAttempts"
+                    name="quitAttempts"
+                    value={formData.quitAttempts}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">اختر عدد المحاولات</option>
+                    <option value="never">لم أحاول من قبل</option>
+                    <option value="1">مرة واحدة</option>
+                    <option value="2-3">مرتان إلى ثلاث مرات</option>
+                    <option value=">3">أكثر من ثلاث مرات</option>
+                  </select>
+                  <div className="field-icon">🧭</div>
                 </div>
 
                 <div className="form-group">
