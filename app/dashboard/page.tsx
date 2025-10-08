@@ -1,5 +1,8 @@
 'use client';
 
+// ✅ [Copilot Fix] تم تعديل منطق السؤال اليومي لضمان التسجيل الصحيح للمستخدمين الجدد والقدامى.
+// السبب: updateDoc كان يفشل عند عدم وجود المستند، وcheckDailyQuestion كانت تعمل قبل تحديث lastCheckDate.
+
 // ✅ [Copilot Review] تم تصحيح منطق تخزين/تحميل سجل المزاج ليكون لكل مستخدم، وتثبيت تبعيات useEffect لمنع خطأ تغيّر حجم مصفوفة التبعيات.
 // السبب: كان السجل يُخزَّن بمفتاح عام في localStorage مما يسبب مشاركة بين الحسابات على نفس الجهاز، كما أن تبعيات useEffect كانت تتغير بين الرندرات وتسبب خطأ React.
 
@@ -185,7 +188,7 @@ const createConfetti = () => {
     }
 };
 
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 const App: React.FC = () => {
@@ -314,8 +317,9 @@ const App: React.FC = () => {
                 const userRef = doc(db, 'users', username);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
-                    const data = userSnap.data() as UserData;
-                    setUserData(data);
+                    const data = userSnap.data() as FireUserData;
+                    // اضبط الحالة المحلية من نسخة متوافقة مع UserData
+                    setUserData(data as UserData);
 
                     // تعيين سعر السيجارة إذا كان موجودًا
                     if (data.cigarettePrice) {
@@ -325,24 +329,24 @@ const App: React.FC = () => {
                     // حفظ daysWithoutSmoking في localStorage ليستخدم في باقي الصفحات
                     try { if (typeof window !== 'undefined') localStorage.setItem('anfask-userData-' + username, JSON.stringify(data)); } catch {}
 
-                    // إصلاح تلقائي: لو سجل اليوم موجود في dailyRecords لكن lastCheckDate غير محدثة، حدّثها وتجنب إعادة السؤال
+                    // إصلاح تلقائي مع تجنب حالة السباق: إذا كان سجل اليوم موجودًا وlastCheckDate ليست اليوم، حدِّثها أولاً ثم قرر ظهور السؤال
+                    let finalDocData: FireUserData = data;
                     try {
                         const todayStr = getTodayLocalDate();
                         const docData = userSnap.data() as FireUserData;
                         const dailyRecords = docData?.dailyRecords || {};
                         if (dailyRecords && dailyRecords[todayStr] && docData?.lastCheckDate !== todayStr) {
-                            const userRef = doc(db, 'users', username);
-                            await updateDoc(userRef, { lastCheckDate: todayStr });
-                            // حدّث النسخة المحلية أيضاً
-                            const updated = { ...data, lastCheckDate: todayStr } as UserData;
-                            setUserData(updated);
-                            try { if (typeof window !== 'undefined') localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated)); } catch {}
-                            setShowDailyQuestion(false);
+                            await setDoc(userRef, { lastCheckDate: todayStr }, { merge: true });
+                            // حدِّث النسخة المحلية والمتصفح
+                            const updatedLocal = { ...(data as UserData), lastCheckDate: todayStr } as UserData;
+                            setUserData(updatedLocal);
+                            try { if (typeof window !== 'undefined') localStorage.setItem('anfask-userData-' + username, JSON.stringify(updatedLocal)); } catch {}
+                            finalDocData = { ...docData, lastCheckDate: todayStr } as FireUserData;
                         }
                     } catch {}
 
-                    // التحقق من ضرورة عرض السؤال اليومي
-                    checkDailyQuestion(data);
+                    // قرر عرض السؤال بعد ضمان تزامن lastCheckDate
+                    checkDailyQuestion(finalDocData);
                 } else {
                     setUserData(null);
                 }
@@ -374,13 +378,15 @@ const App: React.FC = () => {
     }, [username, userData, calculateActualDaysWithoutSmoking]);
 
     // التحقق من ضرورة عرض السؤال اليومي
-    const checkDailyQuestion = (data: UserData) => {
+    const checkDailyQuestion = (data: FireUserData) => {
         const today = getTodayLocalDate(); // YYYY-MM-DD
         const lastCheckDate = data.lastCheckDate;
-        
-        // إذا لم يتم السؤال اليوم، اعرض السؤال
-        if (!lastCheckDate || lastCheckDate !== today) {
+        const hasTodayRecord = !!data.dailyRecords?.[today];
+        // لا تظهر السؤال إذا كان سجل اليوم موجودًا أو إذا تم التحقق اليوم بالفعل
+        if (!hasTodayRecord && (!lastCheckDate || lastCheckDate !== today)) {
             setShowDailyQuestion(true);
+        } else {
+            setShowDailyQuestion(false);
         }
     };
 
@@ -398,7 +404,13 @@ const App: React.FC = () => {
                 }
             } catch {}
         }
-        if (!userData || !effectiveUsername) {
+        // تحقق صريح قبل أي تحديث
+        if (!effectiveUsername) {
+            console.error('No username found during update');
+            showNotification('حدث خطأ في تحميل الحساب، أعد تسجيل الدخول', 'error');
+            return;
+        }
+        if (!userData) {
             showNotification('تعذر التعرف على المستخدم لحفظ إجابة اليوم. حاول إعادة تسجيل الدخول.', 'error');
             return;
         }
@@ -426,14 +438,14 @@ const App: React.FC = () => {
             
             if (didSmoke) {
                 // إذا دخن، أعد تعيين العدادات
-                await updateDoc(userRef, {
+                await setDoc(userRef, {
                     daysWithoutSmoking: 0,
                     lastCheckDate: today,
                     dailyRecords,
                     totalDaysWithoutSmoking,
                     netDaysWithoutSmoking,
                     todaySmoking: didSmoke
-                });
+                }, { merge: true });
                 
                 setUserData(prev => {
                     const updated = prev ? {
@@ -461,14 +473,14 @@ const App: React.FC = () => {
             } else {
                 // إذا لم يدخن، زد عدد الأيام
                 const newDays = userData.daysWithoutSmoking + 1;
-                await updateDoc(userRef, {
+                await setDoc(userRef, {
                     daysWithoutSmoking: newDays,
                     lastCheckDate: today,
                     dailyRecords,
                     totalDaysWithoutSmoking,
                     netDaysWithoutSmoking,
                     todaySmoking: didSmoke
-                });
+                }, { merge: true });
                 
                 setUserData(prev => {
                     const updated = prev ? {
@@ -506,7 +518,7 @@ const App: React.FC = () => {
                     const hasToday = !!v.dailyRecords?.[today];
                     const okLast = v.lastCheckDate === today;
                     if (!hasToday || !okLast) {
-                        await updateDoc(userRef, { dailyRecords, lastCheckDate: today });
+                        await setDoc(userRef, { dailyRecords, lastCheckDate: today }, { merge: true });
                     }
                 }
             } catch {}
