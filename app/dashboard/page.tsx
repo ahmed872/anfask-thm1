@@ -380,14 +380,9 @@ const App: React.FC = () => {
     // التحقق من ضرورة عرض السؤال اليومي
     const checkDailyQuestion = (data: FireUserData) => {
         const today = getTodayLocalDate(); // YYYY-MM-DD
-        const lastCheckDate = data.lastCheckDate;
         const hasTodayRecord = !!data.dailyRecords?.[today];
-        // لا تظهر السؤال إذا كان سجل اليوم موجودًا أو إذا تم التحقق اليوم بالفعل
-        if (!hasTodayRecord && (!lastCheckDate || lastCheckDate !== today)) {
-            setShowDailyQuestion(true);
-        } else {
-            setShowDailyQuestion(false);
-        }
+        // اعرض السؤال فقط عند عدم وجود سجل لليوم بغض النظر عن lastCheckDate
+        setShowDailyQuestion(!hasTodayRecord);
     };
 
     // التعامل مع إجابة السؤال اليومي
