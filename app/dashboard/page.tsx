@@ -231,9 +231,16 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        // جلب اسم المستخدم من localStorage إذا كان موجودًا (بشكل آمن)
+        // جلب اسم المستخدم من localStorage أو من الكوكيز كخيار احتياطي
         try {
-            const storedUsername = typeof window !== 'undefined' ? (localStorage.getItem('anfask-username') || '') : '';
+            if (typeof window === 'undefined') return;
+            let storedUsername = localStorage.getItem('anfask-username') || '';
+            if (!storedUsername) {
+                // محاولة من الكوكيز
+                const cookies = document.cookie.split(';').map(c => c.trim());
+                const entry = cookies.find(c => c.startsWith('anfask-username='));
+                if (entry) storedUsername = decodeURIComponent(entry.split('=')[1] || '');
+            }
             if (storedUsername) setUsername(storedUsername);
         } catch {
             // تجاهل أي مشاكل وصول للتخزين
@@ -313,6 +320,22 @@ const App: React.FC = () => {
                     // حفظ daysWithoutSmoking في localStorage ليستخدم في باقي الصفحات
                     try { if (typeof window !== 'undefined') localStorage.setItem('anfask-userData-' + username, JSON.stringify(data)); } catch {}
 
+                    // إصلاح تلقائي: لو سجل اليوم موجود في dailyRecords لكن lastCheckDate غير محدثة، حدّثها وتجنب إعادة السؤال
+                    try {
+                        const todayStr = getTodayLocalDate();
+                        const docData = userSnap.data() as FireUserData;
+                        const dailyRecords = docData?.dailyRecords || {};
+                        if (dailyRecords && dailyRecords[todayStr] && docData?.lastCheckDate !== todayStr) {
+                            const userRef = doc(db, 'users', username);
+                            await updateDoc(userRef, { lastCheckDate: todayStr });
+                            // حدّث النسخة المحلية أيضاً
+                            const updated = { ...data, lastCheckDate: todayStr } as UserData;
+                            setUserData(updated);
+                            try { if (typeof window !== 'undefined') localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated)); } catch {}
+                            setShowDailyQuestion(false);
+                        }
+                    } catch {}
+
                     // التحقق من ضرورة عرض السؤال اليومي
                     checkDailyQuestion(data);
                 } else {
@@ -358,13 +381,28 @@ const App: React.FC = () => {
 
     // التعامل مع إجابة السؤال اليومي
     const handleDailyQuestionAnswer = async (didSmoke: boolean) => {
-        if (!userData || !username) return;
+        // تأكد من توفر اسم المستخدم حتى لو لم يُحمّل من localStorage بعد
+        let effectiveUsername = username;
+        if (!effectiveUsername && typeof window !== 'undefined') {
+            try {
+                effectiveUsername = localStorage.getItem('anfask-username') || '';
+                if (!effectiveUsername) {
+                    const cookies = document.cookie.split(';').map(c => c.trim());
+                    const entry = cookies.find(c => c.startsWith('anfask-username='));
+                    if (entry) effectiveUsername = decodeURIComponent(entry.split('=')[1] || '');
+                }
+            } catch {}
+        }
+        if (!userData || !effectiveUsername) {
+            showNotification('تعذر التعرف على المستخدم لحفظ إجابة اليوم. حاول إعادة تسجيل الدخول.', 'error');
+            return;
+        }
         
         setIsUpdatingFirebase(true);
         const today = getTodayLocalDate();
         
         try {
-            const userRef = doc(db, 'users', username);
+            const userRef = doc(db, 'users', effectiveUsername);
             // جلب السجل اليومي الحالي
             const snap = await getDoc(userRef);
             const currentData = snap.exists() ? (snap.data() as FireUserData) : ({} as FireUserData);
@@ -398,7 +436,7 @@ const App: React.FC = () => {
                         lastCheckDate: today
                     } : null;
                     if (updated && typeof window !== 'undefined') {
-                        try { localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated)); } catch {}
+                        try { localStorage.setItem('anfask-userData-' + effectiveUsername, JSON.stringify(updated)); } catch {}
                     }
                     return updated;
                 });
@@ -432,7 +470,7 @@ const App: React.FC = () => {
                         lastCheckDate: today
                     } : null;
                     if (updated && typeof window !== 'undefined') {
-                        try { localStorage.setItem('anfask-userData-' + username, JSON.stringify(updated)); } catch {}
+                        try { localStorage.setItem('anfask-userData-' + effectiveUsername, JSON.stringify(updated)); } catch {}
                     }
                     return updated;
                 });
@@ -453,7 +491,20 @@ const App: React.FC = () => {
             }
             
             // إعادة حساب الأيام الفعلية بعد الإجابة
-            const actualDays = await calculateActualDaysWithoutSmoking(username, userData);
+            // تحقق من ثبات الكتابة: أعد تحميل المستند وتأكد من وجود سجل اليوم وتحديث lastCheckDate
+            try {
+                const verifySnap = await getDoc(userRef);
+                if (verifySnap.exists()) {
+                    const v = verifySnap.data() as FireUserData;
+                    const hasToday = !!v.dailyRecords?.[today];
+                    const okLast = v.lastCheckDate === today;
+                    if (!hasToday || !okLast) {
+                        await updateDoc(userRef, { dailyRecords, lastCheckDate: today });
+                    }
+                }
+            } catch {}
+
+            const actualDays = await calculateActualDaysWithoutSmoking(effectiveUsername, userData);
             setActualDaysWithoutSmoking(actualDays);
             
             // حفظ الأيام الفعلية في localStorage
@@ -671,7 +722,13 @@ const App: React.FC = () => {
             setMoodHistory(updatedHistory);
             // تأكد أن الكود يعمل في المتصفح قبل الوصول إلى localStorage
             if (typeof window !== 'undefined') {
-                try { localStorage.setItem(`moodHistory-${username}`, JSON.stringify(updatedHistory)); } catch {}
+                try {
+                    const up = username || localStorage.getItem('anfask-username') || '';
+                    if (up) {
+                        localStorage.setItem(`moodHistory-${up}`, JSON.stringify(updatedHistory));
+                    }
+                    // في حال عدم توفر اسم مستخدم بعد، لا تحفظ تحت مفتاح عام لمنع المشاركة عبر الحسابات
+                } catch {}
             }
 
             showNotification('تم حفظ بياناتك بنجاح!', 'success');
