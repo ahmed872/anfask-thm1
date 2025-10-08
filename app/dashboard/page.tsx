@@ -23,7 +23,12 @@ interface UserData {
 }
 
 // بيانات المستخدم في Firestore قد تحتوي على حقول إضافية
-interface DailyRecord { smoked?: boolean }
+interface DailyRecord {
+    smoked?: boolean;
+    recordedAt?: string;
+    recordedManually?: boolean;
+    date?: string;
+}
 interface FireUserData extends UserData {
     dailyRecords?: Record<string, DailyRecord>;
     netDaysWithoutSmoking?: number;
@@ -408,7 +413,7 @@ const App: React.FC = () => {
             const currentData = snap.exists() ? (snap.data() as FireUserData) : ({} as FireUserData);
             const dailyRecords: Record<string, DailyRecord> = { ...(currentData.dailyRecords || {}) };
             // تسجيل حالة اليوم
-            dailyRecords[today] = { smoked: didSmoke };
+            dailyRecords[today] = { smoked: didSmoke, recordedAt: getCurrentTimestamp(), recordedManually: false, date: today };
             // إعادة حساب الإجماليات والصافي
             let smokedDays = 0, nonSmokedDays = 0;
             for (const rec of Object.values(dailyRecords)) {
@@ -426,7 +431,8 @@ const App: React.FC = () => {
                     lastCheckDate: today,
                     dailyRecords,
                     totalDaysWithoutSmoking,
-                    netDaysWithoutSmoking
+                    netDaysWithoutSmoking,
+                    todaySmoking: didSmoke
                 });
                 
                 setUserData(prev => {
@@ -460,7 +466,8 @@ const App: React.FC = () => {
                     lastCheckDate: today,
                     dailyRecords,
                     totalDaysWithoutSmoking,
-                    netDaysWithoutSmoking
+                    netDaysWithoutSmoking,
+                    todaySmoking: didSmoke
                 });
                 
                 setUserData(prev => {
