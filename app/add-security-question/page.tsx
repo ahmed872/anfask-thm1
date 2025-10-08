@@ -1,4 +1,6 @@
 "use client";
+// ✅ [Copilot Review] تم منع الوصول لهذه الصفحة إن كانت إجابة السؤال الأمني محفوظة مسبقًا وإعادة التوجيه للوحة التحكم.
+// السبب: لتجنّب تكرار الخطوة بعد نقل السؤال الأمني لمرحلة التسجيل النهائية.
 import React, { useState, useEffect } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -22,6 +24,20 @@ const AddSecurityQuestionPage: React.FC = () => {
         return;
       }
       setUsername(storedUsername);
+
+      // إذا كان لديه سؤال أمني بالفعل، لا داعي لهذه الصفحة
+      (async () => {
+        try {
+          const userRef = doc(db, 'users', storedUsername);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            if (data.securityQuestion && String(data.securityQuestion).trim() !== '') {
+              router.push('/dashboard');
+            }
+          }
+        } catch {}
+      })();
     }
   }, [router]);
 

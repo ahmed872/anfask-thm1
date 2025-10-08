@@ -1,5 +1,8 @@
 'use client';
 
+// ✅ [Copilot Review] تم تصحيح منطق تخزين/تحميل سجل المزاج ليكون لكل مستخدم، وتثبيت تبعيات useEffect لمنع خطأ تغيّر حجم مصفوفة التبعيات.
+// السبب: كان السجل يُخزَّن بمفتاح عام في localStorage مما يسبب مشاركة بين الحسابات على نفس الجهاز، كما أن تبعيات useEffect كانت تتغير بين الرندرات وتسبب خطأ React.
+
 // src/App.tsx
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './dashboard.css'; // استيراد ملف CSS
@@ -493,19 +496,54 @@ const App: React.FC = () => {
 
     // تحسين: تحميل بيانات المزاج مرة واحدة فقط عند أول تحميل
     const [moodHistory, setMoodHistory] = useState<MoodEntry[]>([]);
+    // حمل بيانات المزاج مرة واحدة عند التحميل باستخدام اسم المستخدم المتاح أو من التخزين المحلي
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('moodHistory');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed)) setMoodHistory(parsed);
-                } catch {
-                    // ignore malformed localStorage content
+        if (typeof window === 'undefined') return;
+        try {
+            const up = localStorage.getItem('anfask-username') || '';
+            if (!up) { setMoodHistory([]); return; }
+            let saved = localStorage.getItem(`moodHistory-${up}`);
+            if (!saved) {
+                const legacy = localStorage.getItem('moodHistory');
+                if (legacy) {
+                    saved = legacy;
+                    localStorage.setItem(`moodHistory-${up}`, legacy);
+                    localStorage.removeItem('moodHistory');
                 }
             }
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) setMoodHistory(parsed); else setMoodHistory([]);
+            } else {
+                setMoodHistory([]);
+            }
+        } catch {
+            // تجاهل أي أخطاء في القراءة/التحليل
         }
     }, []);
+
+    // وأعد التحميل عندما يتغير username لاحقًا
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!username) return;
+        try {
+            let saved = localStorage.getItem(`moodHistory-${username}`);
+            if (!saved) {
+                const legacy = localStorage.getItem('moodHistory');
+                if (legacy) {
+                    saved = legacy;
+                    localStorage.setItem(`moodHistory-${username}`, legacy);
+                    localStorage.removeItem('moodHistory');
+                }
+            }
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) setMoodHistory(parsed); else setMoodHistory([]);
+            } else {
+                setMoodHistory([]);
+            }
+        } catch {}
+    }, [username]);
 
     const [welcomeMessage, setWelcomeMessage] = useState({
         title: '',
@@ -633,7 +671,7 @@ const App: React.FC = () => {
             setMoodHistory(updatedHistory);
             // تأكد أن الكود يعمل في المتصفح قبل الوصول إلى localStorage
             if (typeof window !== 'undefined') {
-                try { localStorage.setItem('moodHistory', JSON.stringify(updatedHistory)); } catch {}
+                try { localStorage.setItem(`moodHistory-${username}`, JSON.stringify(updatedHistory)); } catch {}
             }
 
             showNotification('تم حفظ بياناتك بنجاح!', 'success');

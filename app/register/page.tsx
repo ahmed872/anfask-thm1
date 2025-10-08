@@ -1,4 +1,6 @@
 "use client";
+// ✅ [Copilot Review] تم نقل سؤال الأمان (اللون المفضل) لآخر خطوة مع حفظ الحقول المشتقة الأولية وتثبيت التحقق، بدون تغيير في الواجهة.
+// السبب: لضمان توفر إجابة السؤال الأمني قبل أول دخول وتفادي تكرار المطالبة بعد تسجيل الدخول.
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { isUsernameAvailable, registerUser } from '../../lib/userService';
 import './styles.css'; // تأكد من أن مسار ملف CSS صحيح
@@ -19,8 +21,8 @@ interface FormData {
   dailyCigarettes: number | "";
   dataConsent: boolean;
   communityRules: boolean;
-  quitAttempts: string; // كم مرة حاولت الإقلاع
-  favoriteColor: string; // اللون المفضل
+  quitAttempts: string; // كم مرة حاولت الإقلاع سابقًا
+  securityQuestion: string; // إجابة السؤال الأمني: اللون المفضل
 }
 
 const RegistrationPage: React.FC = () => {
@@ -40,13 +42,13 @@ const RegistrationPage: React.FC = () => {
     dataConsent: false,
     communityRules: false,
     quitAttempts: '',
-    favoriteColor: ''
+    securityQuestion: ''
   });
   const [usernameError, setUsernameError] = useState('');
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const totalSteps = 4;
+  const totalSteps = 5; // أضفنا خطوة السؤال الأمني في النهاية
 
   // Effect for initial animations and cleanup
   useEffect(() => {
@@ -214,11 +216,18 @@ const checked = (e.target as HTMLInputElement).checked;
       await registerUser(formData.preferredName, {
         ...formData,
         createdAt: new Date().toISOString(),
-        daysWithoutSmoking: 0,
+        // حقول ابتدائية للأنظمة الجديدة
+        totalDaysWithoutSmoking: 0,
+        netDaysWithoutSmoking: 0,
+        actualDaysWithoutSmoking: 0,
+        dailyRecords: {},
+        daysWithoutSmoking: 0, // للتوافق العكسي إذا كان مستخدماً في أماكن أخرى
         todaySmoking: false,
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem('anfask-username', formData.preferredName);
+        try {
+          localStorage.setItem('anfask-username', formData.preferredName);
+        } catch {}
       }
       setShowSuccess(true);
       createConfetti();
@@ -394,28 +403,6 @@ const checked = (e.target as HTMLInputElement).checked;
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="favoriteColor">اللون المفضل</label>
-                  <select
-                    id="favoriteColor"
-                    name="favoriteColor"
-                    value={formData.favoriteColor}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">اختر لونك المفضل</option>
-                    <option value="blue">أزرق</option>
-                    <option value="green">أخضر</option>
-                    <option value="red">أحمر</option>
-                    <option value="purple">بنفسجي</option>
-                    <option value="orange">برتقالي</option>
-                    <option value="black">أسود</option>
-                    <option value="white">أبيض</option>
-                    <option value="other">آخر</option>
-                  </select>
-                  <div className="field-icon">🎨</div>
-                </div>
-
                 <button type="button" className="next-btn" onClick={nextStep}>
                   التالي
                 </button>
@@ -556,6 +543,21 @@ const checked = (e.target as HTMLInputElement).checked;
                 </div>
 
                 <div className="form-group">
+                  <label htmlFor="dailyCigarettes">عدد السجائر اليومي</label>
+                  <input
+                    type="number"
+                    id="dailyCigarettes"
+                    name="dailyCigarettes"
+                    min={1}
+                    max={100}
+                    value={formData.dailyCigarettes}
+                    onChange={handleChange}
+                    required
+                  />
+                  <div className="field-icon">📊</div>
+                </div>
+
+                <div className="form-group">
                   <label htmlFor="quitAttempts">كم مرة حاولت الإقلاع عن التدخين؟</label>
                   <select
                     id="quitAttempts"
@@ -571,21 +573,6 @@ const checked = (e.target as HTMLInputElement).checked;
                     <option value=">3">أكثر من ثلاث مرات</option>
                   </select>
                   <div className="field-icon">🧭</div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="dailyCigarettes">عدد السجائر اليومي</label>
-                  <input
-                    type="number"
-                    id="dailyCigarettes"
-                    name="dailyCigarettes"
-                    min={1}
-                    max={100}
-                    value={formData.dailyCigarettes}
-                    onChange={handleChange}
-                    required
-                  />
-                  <div className="field-icon">📊</div>
                 </div>
 
                 <div className="step-buttons">
@@ -637,6 +624,48 @@ const checked = (e.target as HTMLInputElement).checked;
                   <button type="button" className="prev-btn" onClick={prevStep}>
                     السابق
                   </button>
+                  <button type="button" className="next-btn" onClick={nextStep}>
+                    التالي
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Security Question (Favorite Color) */}
+            {currentStep === 5 && (
+              <div className="form-step active" data-step="5">
+                <h2 className="step-title">السؤال الأمني</h2>
+                <div style={{
+                  backgroundColor: '#fff3cd',
+                  border: '1px solid #ffeaa7',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  margin: '0 0 14px 0',
+                  color: '#856404',
+                  textAlign: 'center',
+                  fontSize: '0.95rem'
+                }}>
+                  <strong>⚠️ هام:</strong> هذا السؤال ضروري لاستعادة كلمة المرور في حال نسيانها.
+                  من فضلك اختر إجابة يسهل تذكرها ولا تشاركها مع أحد.
+                </div>
+                <div className="form-group">
+                  <label htmlFor="securityQuestion">ما هو لونك المفضل؟</label>
+                  <input
+                    type="text"
+                    id="securityQuestion"
+                    name="securityQuestion"
+                    placeholder="مثال: أزرق، أحمر، أخضر..."
+                    value={formData.securityQuestion}
+                    onChange={handleChange}
+                    required
+                  />
+                  <div className="field-icon">🎨</div>
+                </div>
+
+                <div className="step-buttons">
+                  <button type="button" className="prev-btn" onClick={prevStep}>
+                    السابق
+                  </button>
                   <button
                     type="submit"
                     className={`submit-btn ${isSubmitting ? 'loading' : ''}`}
@@ -680,7 +709,7 @@ const checked = (e.target as HTMLInputElement).checked;
         </header>
         <div className="quote-section">
           <p className="quote-text">
-            "ابدأ رحلتك اليوم، وقد تكون قصتك هي الإلهام لشخص آخر غداً"
+            &ldquo;ابدأ رحلتك اليوم، وقد تكون قصتك هي الإلهام لشخص آخر غداً&rdquo;
           </p>
         </div>
       </div>

@@ -1,4 +1,6 @@
 "use client";
+// ✅ [Copilot Review] تم توحيد منطق التواريخ محليًا وتحديث الحقول المشتقة (total/net) مع حفظ السجل دفعة واحدة.
+// السبب: كان حساب الأيام المفقودة يشمل اليوم الحالي وقد يختلف بالمنطقة الزمنية؛ وتمت إضافة تحديث إجمالي/صافي الأيام لمنع عدم اتساق البيانات في الصفحات الأخرى.
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -58,12 +60,14 @@ const MissingDaysPopup: React.FC<MissingDaysPopupProps> = ({
 
   const findMissingDays = (records: Record<string, DailyRecord>) => {
     const startDate = new Date(userCreatedAt);
+    // ط NORMALIZE startDate to local midnight
+    startDate.setHours(0, 0, 0, 0);
     const todayStr = getTodayLocalDate();
     const today = new Date(todayStr);
     const missing: string[] = [];
 
     const currentDate = new Date(startDate);
-    while (currentDate <= today) {
+    while (currentDate < today) { // تخطي يوم اليوم الحالي - سيُسأل عنه من الداشبورد
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, '0');
       const day = String(currentDate.getDate()).padStart(2, '0');
@@ -111,8 +115,20 @@ const MissingDaysPopup: React.FC<MissingDaysPopupProps> = ({
 
       // تحديث قاعدة البيانات
       const userRef = doc(db, 'users', username);
+      // حساب إجمالي/صافي الأيام قبل الحفظ
+      let totalDaysWithoutSmoking = 0;
+      let totalDaysSmoked = 0;
+      Object.values(newRecords).forEach(r => {
+        if (!r.smoked) totalDaysWithoutSmoking++; else totalDaysSmoked++;
+      });
+      const netDaysWithoutSmoking = Math.max(0, totalDaysWithoutSmoking - totalDaysSmoked);
+
       await updateDoc(userRef, {
-        dailyRecords: newRecords
+        dailyRecords: newRecords,
+        totalDaysWithoutSmoking,
+        netDaysWithoutSmoking,
+        totalDaysSmoked,
+        lastCheckDate: getTodayLocalDate()
       });
 
       // تحديث الأيام المتتالية بدون تدخين
@@ -120,6 +136,11 @@ const MissingDaysPopup: React.FC<MissingDaysPopupProps> = ({
       
       // تحديث المدخرات
       await updateSavings(newRecords);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('anfask-totalDaysWithoutSmoking', String(totalDaysWithoutSmoking));
+        localStorage.setItem('anfask-netDaysWithoutSmoking', String(netDaysWithoutSmoking));
+      }
 
       onComplete();
     } catch (error) {
@@ -132,12 +153,12 @@ const MissingDaysPopup: React.FC<MissingDaysPopupProps> = ({
 
   const updateConsecutiveDays = async (records: Record<string, DailyRecord>) => {
     // حساب الأيام المتتالية بدون تدخين من النهاية
-    const today = new Date();
+  const today = new Date(getTodayLocalDate());
     let consecutiveDays = 0;
     
     const currentDate = new Date(today);
     while (currentDate >= new Date(userCreatedAt)) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+  const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
       const record = records[dateStr];
       
       if (record && !record.smoked) {

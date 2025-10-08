@@ -1,5 +1,8 @@
 'use client';
 
+// ✅ [Copilot Review] تم ضمان تسجيل الخروج الكامل بمسح الكوكيز والتخزين المحلي قبل التوجيه.
+// السبب: كان الزر يوجّه فقط بدون مسح Cookie المصادق عليه مما يبقي الـ middleware يعتبر المستخدم مسجّل الدخول.
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -60,6 +63,13 @@ const Navbar: React.FC = () => {
           className="logout-btn"
           onClick={() => {
             setIsMenuOpen(false);
+            try {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('anfask-username');
+                // expire auth cookie immediately
+                document.cookie = 'anfask-username=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+              }
+            } catch {}
             window.location.href = '/home';
           }}
           aria-label="تسجيل الخروج"

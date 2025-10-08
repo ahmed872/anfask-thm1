@@ -1,13 +1,15 @@
 "use client";
+// ✅ [Copilot Review] تم تصحيح حساب الأيام المفقودة باستخدام تاريخ محلي وتفادي إدراج عناصر غير مناسبة داخل JSX.
+// السبب: الاعتماد على toISOString كان يسبب انزياح يوم بالمنطقة الزمنية؛ كما تمت إزالة وسم meta غير مناسب داخل الكود.
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
 import './login.css';
 import MissingDaysPopup from '../components/MissingDaysPopup';
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 import Image from 'next/image';
+import { getTodayLocalDate } from '../../lib/dateUtils';
 
 interface LoginFormData {
   preferredName: string;
@@ -156,22 +158,26 @@ const LoginPage: React.FC = () => {
         const userData = userSnap.data();
         const records = userData.dailyRecords || {};
         
-        // العثور على الأيام المفقودة
+        // العثور على الأيام المفقودة (محليًا لتجنب مشاكل المنطقة الزمنية)
         const startDate = new Date(createdAt);
-        const today = new Date();
+        const todayStr = getTodayLocalDate();
+        const today = new Date(todayStr);
         const missing: string[] = [];
 
         const currentDate = new Date(startDate);
-        while (currentDate <= today) {
-          const dateStr = currentDate.toISOString().split('T')[0];
-          if (!records[dateStr]) {
-            missing.push(dateStr);
-          }
+        // ط NORMALIZE startDate to local date midnight
+        currentDate.setHours(0, 0, 0, 0);
+        while (currentDate < today) {
+          const y = currentDate.getFullYear();
+          const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+          const d = String(currentDate.getDate()).padStart(2, '0');
+          const dateStr = `${y}-${m}-${d}`;
+          if (!records[dateStr]) missing.push(dateStr);
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
         // إذا كان هناك أيام مفقودة، إظهار النافذة المنبثقة
-        if (missing.length > 1) {
+        if (missing.length >= 1) {
           setShowMissingDaysPopup(true);
         } else {
           // إذا لم تكن هناك أيام مفقودة، انتقل للداشبورد
